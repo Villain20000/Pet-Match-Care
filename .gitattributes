@@ -1,0 +1,7 @@
+# Force LF line endings + preserve the executable bit on the git hooks
+# directory so Windows + macOS contributors keep parity with Linux.
+# (`write_file` doesn't set the +x bit, so chmod +x after writing.)
+.githooks/* text eol=lf
+
+# Treat this exact file as ordinary, even if the OS tries to re-encode.
+.gitattributes  text eol=lf

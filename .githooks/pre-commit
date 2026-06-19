@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Pet-Match & Care pre-commit check.
+#
+# Runs every fast `test:*` script. Exits non-zero so the commit fails
+# fast when an English entry drifts from the Greek source-of-truth (or
+# vice versa). Keep this hook under 30s — move slow integration tests
+# to CI instead.
+set -euo pipefail
+
+# Always run from the repo root, regardless of where git invoked us from.
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "▸ catalog parity (backend + mobile)"
+(cd backend && npm run test:catalog)

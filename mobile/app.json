@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "Pet-Match & Care",
+    "slug": "pet-match-care",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "petmatchcare",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#F4F1DE",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "gr.petmatchcare.app"
+    },
+    "android": {
+      "package": "gr.petmatchcare.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icon-foreground.png",
+        "backgroundColor": "#F4F1DE"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "POST_NOTIFICATIONS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            { "scheme": "petmatchcare", "host": "verify-email" },
+            { "scheme": "petmatchcare", "host": "reset-password" },
+            { "scheme": "petmatchcare", "host": "application" },
+            { "scheme": "petmatchcare" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "app.petmatchcare.gr", "pathPrefix": "/verify-email" },
+            { "scheme": "https", "host": "app.petmatchcare.gr", "pathPrefix": "/reset-password" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Η εφαρμογή χρειάζεται την τοποθεσία σου για να εμφανίζει κοντινά περιστατικά και pet-friendly χώρους."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Η εφαρμογή θέλει πρόσβαση στη συλλογή φωτογραφιών για την αναφορά αδέσποτων."
+        }
+      ],
+      "expo-secure-store",
+      "expo-local-authentication"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:4000/api",
+      "googleMapsApiKey": ""
+    }
+  }
+}
