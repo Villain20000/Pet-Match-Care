@@ -24,6 +24,9 @@ Pet-Match-Care/
 - **Adoption market** — search & filter adoptable pets, modal with full
   vet records, and a single-tap interest button.
 - **Karma** gamification to reward civic participation.
+- **🔔 Toasts** — bottom-snackbar helper with bilingual error
+  resolution, per-variant haptic, auto-stack (max 3), and automatic
+  surfacing of 5xx/network failures via the axios interceptor.
 - **🌍 Bilingual UI + emails** — Greek-first catalog, English mirror;
   a single `useT()` hook in the mobile app and a `wireError()` helper
   on the backend resolve the active locale on every render and every
@@ -134,11 +137,50 @@ Full architecture, pitfalls and catalogue shape are in
 
 ---
 
+## 🔔 Toasts
+
+Snackbar-style user feedback. Mounted once at app level via the
+`<ToastHost />` component inside `NavigationContainer`; every emitter
+(login form, server envelope, third-party plugin) just calls a helper.
+
+```ts
+import { useT } from '@/services/i18n';
+import { toast, resolveApiError } from '@/services/toast';
+
+const t = useT();
+toast.success({ title: t('login.welcomeBack') });
+
+// or, if the message has to come from a server error envelope:
+const resolved = resolveApiError(err, t);
+if (resolved) toast.error({ title: resolved.title, body: resolved.body });
+```
+
+Variant palettes + haptics:
+
+| `toast.*` | Background | Edge | Haptic |
+| --- | --- | --- | --- |
+| `info` | `creamSoft` | `terracotta` | none |
+| `success` | `sageSoft` | `sageDeep` | `success` |
+| `warning` | `terracottaSoft` | `terracottaDeep` | `warning` |
+| `error` | `crimsonDeep` | `crimson` | `error` |
+
+Auto-fire policy (axios interceptor installed in `App.tsx`):
+
+- **5xx and network failures** → automatic `error` toast.
+- **4xx** and **STEP_UP_REQUIRED** → not auto-toasted; caller decides.
+- **Per-call opt-out**: pass `{ skipAutoToast: true }` in the axios
+  config (e.g. `api.get('/foo', { skipAutoToast: true } as any)`).
+
+The catalog surfaces every visible toast string under the `toast.*`
+namespace (kept in parity across EL and EN by `npm run test:catalog`).
+
+---
+
 ## 🧪 Tests & CI
 
 | Layer | Command | What it checks |
 | --- | --- | --- |
-| Backend catalog parity | `cd backend && npm run test:catalog` | Every Greek leaf has an English counterpart, leaf kinds agree, no `{{var}}` placeholder drift, no function-arity drift. Surface: **54 backend + 326 mobile leaves** each side. |
+| Backend catalog parity | `cd backend && npm run test:catalog` | Every Greek leaf has an English counterpart, leaf kinds agree, no `{{var}}` placeholder drift, no function-arity drift. Surface: **54 backend + 335 mobile leaves** each side. |
 | Backend error envelope E2E | `cd backend && npx ts-node scripts/test-i18n.ts` | Boots a minimal Express app and asserts the bilingual error envelope flows correctly for 13 cases (locale header, user-locale override, fallback, validation path, per-kind 404, etc). |
 | Email pipeline smoke | `cd backend && npm run test:email` | Renders each template against each locale + verifies HTML escaping. |
 | Backend typecheck | `cd backend && npm run typecheck` | `tsc --noEmit`. |
@@ -186,6 +228,12 @@ haptic feedback on every critical interaction (`expo-haptics`).
     FCM fan-out** for poison alerts.
 - **`mobile/`** — React Native + Expo + NativeWind.
   - `mobile/src/services/i18n.ts` — `useT()` hook + Zustand locale store.
+  - `mobile/src/services/toast.ts` — Zustand queue with
+    `toast.info|success|warning|error|dismiss|clear` helpers,
+    `resolveApiError(err, t, locale)` for the axios envelope, and
+    `installAutoToastErrorInterceptor(api)` for 5xx/network.
+  - `mobile/src/components/ToastHost.tsx` — bottom-snackbar overlay
+    (reanimated enter/exit, optional CTA pill, max-3 stack).
   - `mobile/src/locales/el.ts` (Greek source of truth), `en.ts` (mirror).
   - `mobile/src/screens/MapScreen.tsx` — full-screen map with floating
     category chips, pulsing poison markers, and a slide-up info sheet.
