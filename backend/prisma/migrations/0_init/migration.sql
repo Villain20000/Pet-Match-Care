@@ -59,7 +59,7 @@ CREATE TABLE "RefreshToken" (
     "ip" TEXT,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "revokedAt" TIMESTAMP(3),
-    "replacedById" TEXT,
+    "replacedById" UUID,
     "lastUsedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
