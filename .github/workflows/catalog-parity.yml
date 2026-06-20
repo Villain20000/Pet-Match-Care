@@ -1,0 +1,42 @@
+# Pet-Match & Care — catalog parity gate
+#
+# Runs the same gate the local pre-commit hook (`bash .githooks/pre-commit`)
+# so PRs without hooks installed still keep the i18n catalogs aligned.
+# Surface is described at the end of `npm run test:catalog`, which
+# self-reports the live backend + mobile leaf counts and confirms there is
+# no `{{var}}` placeholder drift.
+
+name: catalog parity
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel any in-flight re-run on the same PR so pushes don't queue up.
+concurrency:
+  group: parity-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    name: Catalog parity (backend + mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Run pre-commit hook (catalog parity)
+        run: bash .githooks/pre-commit
