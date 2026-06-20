@@ -7,6 +7,7 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
+import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
@@ -202,14 +203,27 @@ export interface FloatingChipProps {
 }
 
 export const FloatingChip = ({ icon, label, active, onPress, style }: FloatingChipProps) => {
+  const pressed = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - pressed.value * 0.03 }],
+  }));
+
   return (
     <Pressable
       onPress={() => {
         void Haptics.selectionAsync();
         onPress();
       }}
+      onPressIn={() => {
+        pressed.value = withSpring(1, { damping: 18, stiffness: 220 });
+      }}
+      onPressOut={() => {
+        pressed.value = withSpring(0, { damping: 18, stiffness: 220 });
+      }}
       android_ripple={{ color: 'rgba(0,0,0,0.08)', borderless: false }}
       style={[
+        animatedStyle,
         {
           backgroundColor: active ? Colors.charcoal : Colors.white,
           borderRadius: Radii.pill,
@@ -222,6 +236,8 @@ export const FloatingChip = ({ icon, label, active, onPress, style }: FloatingCh
         },
         style,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <Text style={{ fontSize: 14, marginRight: 6, color: active ? Colors.white : Colors.charcoal }}>
         {icon}

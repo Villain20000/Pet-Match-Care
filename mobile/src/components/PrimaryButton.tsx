@@ -1,4 +1,5 @@
 import { Pressable, Text, StyleProp, ViewStyle, ActivityIndicator } from 'react-native';
+import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Colors, Radii, Spacing } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -34,6 +35,13 @@ export const PrimaryButton = ({
     }
   })();
 
+  const pressed = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - pressed.value * 0.03 }],
+    opacity: disabled ? 0.5 : 1,
+  }));
+
   return (
     <Pressable
       onPress={() => {
@@ -41,8 +49,16 @@ export const PrimaryButton = ({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         onPress();
       }}
+      onPressIn={() => {
+        if (disabled || loading) return;
+        pressed.value = withSpring(1, { damping: 18, stiffness: 220 });
+      }}
+      onPressOut={() => {
+        pressed.value = withSpring(0, { damping: 18, stiffness: 220 });
+      }}
       android_ripple={{ color: 'rgba(0,0,0,0.12)' }}
       style={[
+        animatedStyle,
         {
           backgroundColor: palette.bg,
           paddingHorizontal: Spacing.xl,
@@ -53,11 +69,12 @@ export const PrimaryButton = ({
           flexDirection: 'row',
           borderWidth: variant === 'ghost' ? 2 : 0,
           borderColor: palette.border,
-          opacity: disabled ? 0.5 : 1,
         },
         fullWidth ? { width: '100%' } : null,
         style,
       ]}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading }}
     >
       {loading ? (
         <ActivityIndicator color={palette.fg} />

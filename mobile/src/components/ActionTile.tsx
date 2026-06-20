@@ -1,4 +1,5 @@
 import { Pressable, Text, View, ViewStyle, StyleProp } from 'react-native';
+import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -27,14 +28,28 @@ const palette = (v: ActionVariant) => {
 export const ActionTile = ({ icon, title, caption, variant, onPress, style }: ActionTileProps) => {
   const c = palette(variant);
 
+  const pressed = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - pressed.value * 0.03 }],
+    opacity: 1,
+  }));
+
   return (
     <Pressable
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         onPress();
       }}
+      onPressIn={() => {
+        pressed.value = withSpring(1, { damping: 18, stiffness: 220 });
+      }}
+      onPressOut={() => {
+        pressed.value = withSpring(0, { damping: 18, stiffness: 220 });
+      }}
       android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
       style={[
+        animatedStyle,
         {
           backgroundColor: c.bg,
           borderRadius: Radii.xl,
@@ -45,6 +60,8 @@ export const ActionTile = ({ icon, title, caption, variant, onPress, style }: Ac
         },
         style,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={title}
     >
       <View
         style={{

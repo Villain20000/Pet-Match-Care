@@ -2,6 +2,10 @@
  * Stepper — animated 1..N indicator for multi-step flows. Apple-style
  * dots + labels so users know where they are and how many steps remain.
  */
+/**
+ * Stepper — animated 1..N indicator for multi-step flows. Apple-style
+ * dots + labels so users know where they are and how many steps remain.
+ */
 import { View, Text } from 'react-native';
 import { Colors, Spacing } from '@/theme';
 

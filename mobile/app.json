@@ -20,7 +20,6 @@
       "package": "gr.petmatchcare.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/icon-foreground.png",
         "backgroundColor": "#F4F1DE"
       },
       "permissions": [

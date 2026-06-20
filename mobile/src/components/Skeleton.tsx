@@ -1,5 +1,13 @@
-import { View, Animated, StyleProp, ViewStyle } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { StyleProp, ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { useEffect } from 'react';
+
 import { Colors, Radii } from '@/theme';
 
 interface SkeletonLineProps {
@@ -9,17 +17,21 @@ interface SkeletonLineProps {
 }
 
 export const SkeletonLine = ({ width = '100%', height = 14, style }: SkeletonLineProps) => {
-  const opacity = useRef(new Animated.Value(0.35)).current;
+  const opacity = useSharedValue(0.35);
+
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.85, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.35, duration: 700, useNativeDriver: true }),
-      ]),
+    opacity.value = withRepeat(
+      withTiming(0.85, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
     );
-    loop.start();
-    return () => loop.stop();
+    // Cleanup happens by virtue of withRepeat being tied to the component lifecycle.
+    // (No explicit stop needed; reanimated handles it on unmount.)
   }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <Animated.View
@@ -29,8 +41,8 @@ export const SkeletonLine = ({ width = '100%', height = 14, style }: SkeletonLin
           width,
           height,
           borderRadius: Radii.xs,
-          opacity,
         },
+        animatedStyle,
         style,
       ]}
     />
@@ -42,7 +54,7 @@ export const SkeletonCircle = ({ size = 48 }: { size?: number }) => (
 );
 
 export const SkeletonCard = ({ height = 120 }: { height?: number }) => (
-  <View
+  <Animated.View
     style={{
       height,
       borderRadius: Radii.lg,
@@ -55,5 +67,5 @@ export const SkeletonCard = ({ height = 120 }: { height?: number }) => (
     <SkeletonLine width="40%" height={12} />
     <SkeletonLine width="100%" height={12} style={{ marginTop: 8 }} />
     <SkeletonLine width="80%" height={12} />
-  </View>
+  </Animated.View>
 );
