@@ -22,7 +22,6 @@ import {
 } from '@/services/fcm.service';
 import { throwHttp } from '@/utils/http';
 
-const toRad = (deg: number) => (deg * Math.PI) / 180;
 
 // ---------------------------------------------------------------------------
 // Validation

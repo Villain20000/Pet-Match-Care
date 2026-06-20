@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/middlewares/error';
+import { throwHttp } from "@/middlewares/error";
 import { evaluateBadges } from '@/services/badges.engine';
 
 export const listAll = async (_req: Request, res: Response) => {
@@ -9,7 +9,7 @@ export const listAll = async (_req: Request, res: Response) => {
 };
 
 export const listMine = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const userId = req.user.sub;
 
   // Re-evaluate before responding so recent activity unlocks badges
@@ -29,7 +29,7 @@ export const listMine = async (req: Request, res: Response) => {
 
 export const listByMunicipality = async (req: Request, res: Response) => {
   const municipality = (req.query.municipality as string) ?? '';
-  if (!municipality) throw httpError(400, 'VALIDATION_ERROR', 'Δώσε δήμο στο query string');
+  if (!municipality) throwHttp(req, 400, 'VALIDATION_ERROR');
 
   // Approximation: count karma earned by users whose stray reports were
   // routed to that municipality (proud-of-citizens-by-dimos).

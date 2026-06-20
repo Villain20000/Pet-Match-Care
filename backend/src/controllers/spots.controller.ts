@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { SpotCategory } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/utils/http';
+import { throwHttp } from "@/utils/http";
 
 const CreateSpotSchema = z.object({
   name: z.string().min(2).max(120),
@@ -17,7 +17,7 @@ const VoteSchema = z.object({
 });
 
 export const createSpot = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const input = CreateSpotSchema.parse(req.body);
 
@@ -63,7 +63,7 @@ export const listSpots = async (req: Request, res: Response) => {
 };
 
 export const voteOnSpot = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const spotId = z.string().uuid().parse(req.params.id);
   const { value } = VoteSchema.parse(req.body);
@@ -113,13 +113,13 @@ export const voteOnSpot = async (req: Request, res: Response) => {
     return updated;
   });
 
-  if (!result) throw httpError(404, 'NOT_FOUND', 'Ο χώρος δεν βρέθηκε');
+  if (!result) throwHttp(req, 404, 'NOT_FOUND');
 
   return res.json({ success: true, spot: result });
 };
 
 export const flagSpot = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
   const { reason } = z.object({ reason: z.string().min(3).max(200) }).parse(req.body);
 

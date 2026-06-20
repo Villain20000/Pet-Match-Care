@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthProvider } from '@prisma/client';
-import { httpError } from '@/middlewares/error';
+import { throwHttp } from "@/middlewares/error";
 import { exchangeGoogleCode, buildGoogleAuthUrl } from '@/services/oauth.service';
 import { findOrCreateUserForSso, issueTokensForUser } from '@/services/auth.service';
 import { env } from '@/config/env';
@@ -13,7 +13,7 @@ import { env } from '@/config/env';
  */
 export const startGoogle = async (req: Request, res: Response) => {
   if (!env.GOOGLE_CLIENT_ID) {
-    throw httpError(503, 'SSO_NOT_CONFIGURED', 'Το Google SSO δεν έχει ρυθμιστεί');
+    throwHttp(req, 503, 'SSO_NOT_CONFIGURED');
   }
   const state = Math.random().toString(36).slice(2);
   // The redirect_uri of Google's OAuth dance is OUR backend callback —
@@ -44,7 +44,7 @@ export const callbackGoogle = async (req: Request, res: Response) => {
     return res.redirect(`${env.OAUTH_REDIRECT_BASE}?error=${encodeURIComponent(error)}`);
   }
   if (!code) {
-    throw httpError(400, 'MISSING_CODE', 'Λείπει ο κωδικός Google');
+    throwHttp(req, 400, 'MISSING_CODE');
   }
 
   const backendUrl = `${req.protocol}://${req.get('host')}`;

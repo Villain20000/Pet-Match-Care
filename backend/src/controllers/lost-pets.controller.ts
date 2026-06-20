@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Species } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/middlewares/error';
+import { throwHttp } from "@/middlewares/error";
 import { findMatches, notifyMatches } from '@/services/lost-pets.service';
 import { evaluateBadges } from '@/services/badges.engine';
 
@@ -21,7 +21,7 @@ const CreateSchema = z.object({
 });
 
 export const createLostPet = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const input = CreateSchema.parse(req.body);
   const pet = await prisma.lostPet.create({
     data: {
@@ -55,11 +55,11 @@ export const listLostPets = async (req: Request, res: Response) => {
 };
 
 export const markFound = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
   const pet = await prisma.lostPet.findUnique({ where: { id } });
-  if (!pet) throw httpError(404, 'NOT_FOUND', 'Δεν βρέθηκε');
-  if (pet.ownerId !== req.user.sub) throw httpError(403, 'FORBIDDEN', 'Μόνο ο ιδιοκτήτης μπορεί να επισημάνει "Βρέθηκε"');
+  if (!pet) throwHttp(req, 404, 'NOT_FOUND');
+  if (pet.ownerId !== req.user.sub) throwHttp(req, 403, 'FORBIDDEN');
 
   const updated = await prisma.lostPet.update({
     where: { id },

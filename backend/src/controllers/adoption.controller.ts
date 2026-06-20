@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AdoptionStatus, Species } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/utils/http';
+import { throwHttp } from "@/utils/http";
 
 const CreatePetSchema = z.object({
   shelterId: z.string().uuid(),
@@ -26,7 +26,7 @@ const CreatePetSchema = z.object({
 const interests = new Map<string, Set<string>>(); // petId -> Set<userId>
 
 export const createPet = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const input = CreatePetSchema.parse(req.body);
 
@@ -69,16 +69,16 @@ export const getPet = async (req: Request, res: Response) => {
     where: { id },
     include: { shelter: true },
   });
-  if (!pet) throw httpError(404, 'NOT_FOUND', 'Το ζώο δεν βρέθηκε');
+  if (!pet) throwHttp(req, 404, 'NOT_FOUND');
   return res.json({ pet, interestedCount: interests.get(id)?.size ?? 0 });
 };
 
 export const expressInterest = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const petId = z.string().uuid().parse(req.params.id);
   const pet = await prisma.petForAdoption.findUnique({ where: { id: petId } });
-  if (!pet) throw httpError(404, 'NOT_FOUND', 'Το ζώο δεν βρέθηκε');
+  if (!pet) throwHttp(req, 404, 'NOT_FOUND');
 
   const set = interests.get(petId) ?? new Set<string>();
   set.add(req.user.sub);
@@ -92,7 +92,7 @@ export const expressInterest = async (req: Request, res: Response) => {
 };
 
 export const markAdopted = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
 
   const pet = await prisma.petForAdoption.update({

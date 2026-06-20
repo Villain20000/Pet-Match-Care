@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AdoptionStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/middlewares/error';
+import { throwHttp } from "@/middlewares/error";
 import {
   transitionApplicationWithNotification,
 } from '@/services/adoption-application.service';
@@ -40,11 +40,11 @@ const ScheduleHomeCheckSchema = z.object({
  * non-PK unique column.
  */
 export const createOrUpdateDraft = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const input = CreateDraftSchema.parse(req.body);
 
   const pet = await prisma.petForAdoption.findUnique({ where: { id: input.petId } });
-  if (!pet) throw httpError(404, 'NOT_FOUND', 'Το ζώο δεν βρέθηκε');
+  if (!pet) throwHttp(req, 404, 'NOT_FOUND');
 
   const app = await prisma.$transaction(async (tx) => {
     const existing = await tx.adoptionApplication.findFirst({
@@ -53,7 +53,7 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
 
     if (existing) {
       if (existing.state !== 'DRAFT' && existing.state !== 'REJECTED' && existing.state !== 'CLOSED') {
-        throw httpError(
+        throwHttp(req, 
           409,
           'APPLICATION_EXISTS',
           'Έχεις ήδη ενεργή αίτηση για αυτό το ζώο',
@@ -88,7 +88,7 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
 };
 
 export const transition = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
   const input = TransitionSchema.parse(req.body);
 
@@ -104,9 +104,9 @@ export const transition = async (req: Request, res: Response) => {
 };
 
 export const scheduleHomeCheck = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   if (req.user.role !== 'SHELTER_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
-    throw httpError(403, 'FORBIDDEN', 'Μόνο η φιλοζωική μπορεί να προγραμματίσει οικιακό έλεγχο');
+    throwHttp(req, 403, 'FORBIDDEN');
   }
   const id = z.string().uuid().parse(req.params.id);
   const input = ScheduleHomeCheckSchema.parse(req.body);
@@ -152,12 +152,12 @@ export const getApplication = async (req: Request, res: Response) => {
       pet: { select: { id: true, name: true, imageUrl: true, species: true } },
     },
   });
-  if (!app) throw httpError(404, 'NOT_FOUND', 'Δεν βρέθηκε');
+  if (!app) throwHttp(req, 404, 'NOT_FOUND');
   return res.json({ application: app });
 };
 
 export const listMine = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const apps = await prisma.adoptionApplication.findMany({
     where: { applicantId: req.user.sub },
     orderBy: { createdAt: 'desc' },
@@ -167,7 +167,7 @@ export const listMine = async (req: Request, res: Response) => {
 };
 
 export const listForShelter = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const apps = await prisma.adoptionApplication.findMany({
     where: {
       state: { in: ['SUBMITTED', 'SCREENING', 'HOME_CHECK_SCHEDULED'] },

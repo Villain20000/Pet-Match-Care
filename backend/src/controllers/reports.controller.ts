@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { ReportCondition, ReportStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/utils/http';
+import { throwHttp } from "@/utils/http";
 import { findClosestMunicipality } from '@/services/municipality.service';
 import { boundingBox, haversineKm } from '@/services/geo.service';
 
@@ -50,7 +50,7 @@ const serializeReport = (r: {
 });
 
 export const createReport = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const input = CreateReportSchema.parse(req.body);
 
@@ -118,13 +118,13 @@ export const listNearbyReports = async (req: Request, res: Response) => {
 export const getReportById = async (req: Request, res: Response) => {
   const id = z.string().uuid().parse(req.params.id);
   const report = await prisma.strayReport.findUnique({ where: { id } });
-  if (!report) throw httpError(404, 'NOT_FOUND', 'Η αναφορά δεν βρέθηκε');
+  if (!report) throwHttp(req, 404, 'NOT_FOUND');
   return res.json({ report: serializeReport(report) });
 };
 
 // Worker-only: mark a report IN_PROGRESS or RESOLVED.
 export const updateReportStatus = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const id = z.string().uuid().parse(req.params.id);
   const status = z.nativeEnum(ReportStatus).parse(req.body.status);

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { ReportStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import { httpError } from '@/middlewares/error';
+import { throwHttp } from "@/middlewares/error";
 import { appendUpdate, listUpdates } from '@/services/timeline.service';
 import { notifyMatchesForReport } from '@/controllers/lost-pets.controller';
 import { findClosestMunicipality } from '@/services/municipality.service';
@@ -14,7 +14,7 @@ const CreateUpdateSchema = z.object({
 });
 
 export const postUpdate = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
   const input = CreateUpdateSchema.parse(req.body);
 
@@ -49,7 +49,7 @@ export const getTimeline = async (req: Request, res: Response) => {
     listUpdates(id),
     prisma.strayReport.findUnique({ where: { id: id } }),
   ]);
-  if (!report) throw httpError(404, 'NOT_FOUND', 'Η αναφορά δεν βρέθηκε');
+  if (!report) throwHttp(req, 404, 'NOT_FOUND');
   return res.json({ report, updates });
 };
 
@@ -59,7 +59,7 @@ export const getTimeline = async (req: Request, res: Response) => {
  * that points to this controller.
  */
 export const createReportWithTimeline = async (req: Request, res: Response) => {
-  if (!req.user) throw httpError(401, 'UNAUTHORIZED', 'Απαιτείται σύνδεση');
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
 
   const CreateSchema = z.object({
     imageUrl: z.string().url(),
