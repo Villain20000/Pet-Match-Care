@@ -3,9 +3,9 @@
  * react-native's internal modules expect (hasViewManagerConfig,
  * getViewManagerConfig) and fixes NativeWind dark mode for web.
  *
- * Metro redirects ALL `react-native` imports to this file for web
- * bundles, so every module that does `import { UIManager } from
- * 'react-native'` gets the patched version.
+ * Metro redirects ALL `react-native` imports (including deep imports
+ * like `react-native/Libraries/Utilities/codegenNativeCommands`) to
+ * this file for web bundles.
  */
 const RNW = require('react-native-web');
 
@@ -34,5 +34,12 @@ if (RNW.StyleSheet && typeof RNW.StyleSheet.setFlag === 'function') {
     /* already set */
   }
 }
+
+// Provide stubs for react-native codegen utilities that native modules
+// (react-native-maps, etc.) import at module-evaluation time.
+// These are no-ops on web.
+RNW.codegenNativeCommands = (config) => config;
+RNW.codegenNativeComponent = (name) => name;
+RNW.codegenNativeViewManagerSupport = () => ({});
 
 module.exports = RNW;

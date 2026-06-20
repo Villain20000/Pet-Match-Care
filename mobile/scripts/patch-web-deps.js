@@ -59,4 +59,33 @@ patchFile(
   '// Patched: silently ignore instead of throwing on web.\n            return;'
 );
 
+// 3. Patch expo-secure-store web stub to provide getValueWithKeyAsync etc.
+//    The default web shim is just `export default {}` which causes runtime
+//    errors when the app tries to read/write secure storage.
+const secureStoreWebPath = path.join(root, 'node_modules/expo-secure-store/build/ExpoSecureStore.web.js');
+try {
+  if (fs.existsSync(secureStoreWebPath)) {
+    fs.writeFileSync(secureStoreWebPath, `// Web stub for expo-secure-store — uses in-memory Map as a fallback.
+const store = new Map();
+
+export default {
+  getValueWithKeyAsync(key) {
+    return Promise.resolve(store.get(key) ?? null);
+  },
+  setValueWithKeyAsync(key, value) {
+    store.set(key, value);
+    return Promise.resolve();
+  },
+  deleteValueWithKeyAsync(key) {
+    store.delete(key);
+    return Promise.resolve();
+  },
+};
+`);
+    console.log(`[patch-web-deps] patched: ${secureStoreWebPath}`);
+  }
+} catch (err) {
+  console.warn(`[patch-web-deps] error patching secure-store:`, err.message);
+}
+
 console.log('[patch-web-deps] done');
