@@ -15,9 +15,14 @@ export const queryClient = new QueryClient({
       networkMode: 'offlineFirst',
       gcTime: 1000 * 60 * 60 * 24, // keep cache 24h
       staleTime: 1000 * 30, // 30s before we consider data stale
-      retry: (failureCount: number, error: any) => {
-        if (error?.response?.status && error.response.status >= 400 && error.response.status < 500) {
-          return false; // don't retry 4xx
+      retry: (failureCount: number, error: unknown) => {
+        if (
+          typeof error === 'object' && error !== null &&
+          'response' in error &&
+          typeof (error as { response?: { status?: number } }).response?.status === 'number'
+        ) {
+          const status = (error as { response: { status: number } }).response.status;
+          if (status >= 400 && status < 500) return false; // don't retry 4xx
         }
         return failureCount < 2;
       },
@@ -31,10 +36,11 @@ export const queryClient = new QueryClient({
 
 export const queryPersister = createAsyncStoragePersister({
   storage: {
-    getItem: (key: string) => AsyncStorage.getItem(key),
-    setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
-    removeItem: (key: string) => AsyncStorage.removeItem(key),
-  } as any,
+    getItem: (key: string) => AsyncStorage.getItem(key) as Promise<string | null>,
+    setItem: (key: string, value: string) =>
+      AsyncStorage.setItem(key, value) as unknown as Promise<unknown>,
+    removeItem: (key: string) => AsyncStorage.removeItem(key) as Promise<void>,
+  },
   key: STORAGE_KEY,
   throttleTime: 1_000,
 });

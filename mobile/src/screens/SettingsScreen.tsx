@@ -15,15 +15,20 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { AppNavigation } from '@/navigation/types';
 import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
-import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import { Radii, Shadows, Spacing } from '@/theme';
+import { useThemeColors, useThemeStore, type ThemeMode } from '@/services/theme';
 import { SectionLabel } from '@/components/ui';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { haptic } from '@/services/haptics';
 
 const cbOptions = ['normal', 'protanopia', 'deuteranopia', 'tritanopia'] as const;
 type CB = typeof cbOptions[number];
+
+const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
 
 interface SettingsScreenProps {
   contrast: 'normal' | 'high';
@@ -34,6 +39,10 @@ interface SettingsScreenProps {
 
 export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlind }: SettingsScreenProps) => {
   const t = useT();
+  const { colors } = useThemeColors();
+  const navigation = useNavigation<AppNavigation>();
+  const themeMode = useThemeStore((s) => s.mode);
+  const setThemeMode = useThemeStore((s) => s.setMode);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const logoutEverywhere = useAuthStore((s) => s.logoutEverywhere);
@@ -62,17 +71,28 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }} edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: Spacing.xl, paddingBottom: Spacing.hero }}>
-        <Text style={{ fontSize: 26, fontWeight: '700', color: Colors.charcoal, letterSpacing: -0.4 }}>
+        <Text style={{ fontSize: 26, fontWeight: '700', color: colors.charcoal, letterSpacing: -0.4 }}>
           {t('settings.title')}
         </Text>
+
+        {/* Profile shortcut */}
+        <SectionLabel title={t('settings.profileTitle')} />
+        <SettingsCard>
+          <SettingsRow
+            title={user?.fullName ?? t('dashboard.greetingFallbackName')}
+            subtitle={user?.email ?? ''}
+            actionLabel={t('settings.profileAction')}
+            onPress={() => navigation.navigate('Profile')}
+          />
+        </SettingsCard>
 
         {/* Language */}
         <SectionLabel title={t('settings.languageTitle')} subtitle={t('settings.languageHint')} />
         <View
           style={[{
-            backgroundColor: Colors.white,
+            backgroundColor: colors.white,
             borderRadius: Radii.lg,
             padding: Spacing.md,
             ...Shadows.soft,
@@ -80,6 +100,18 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
         >
           <LanguageSwitcher />
         </View>
+
+        {/* Appearance */}
+        <SectionLabel title={t('settings.sectionAppearance')} subtitle={t('settings.darkModeHint')} />
+        <SettingsCard>
+          <SettingsPicker
+            label={t('settings.darkMode')}
+            value={themeMode}
+            options={themeModes as unknown as string[]}
+            optionLabel={(m) => (m === 'system' ? t('settings.themeSystem') : m === 'light' ? t('settings.themeLight') : t('settings.themeDark'))}
+            onChange={(v) => { haptic.select(); void setThemeMode(v as ThemeMode); }}
+          />
+        </SettingsCard>
 
         {/* Security */}
         <SectionLabel title={t('settings.sectionSecurity')} />
@@ -105,11 +137,11 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
               <View key={s.id} style={{
                 padding: Spacing.md,
                 borderRadius: Radii.md,
-                backgroundColor: Colors.creamSoft,
+                backgroundColor: colors.creamSoft,
                 marginBottom: 6,
               }}>
-                <Text style={{ fontWeight: '600' }}>{s.userAgent ?? 'Device'}</Text>
-                <Text style={{ fontSize: 12, color: Colors.charcoalSoft }}>
+                <Text style={{ fontWeight: '600', color: colors.charcoal }}>{s.userAgent ?? 'Device'}</Text>
+                <Text style={{ fontSize: 12, color: colors.charcoalSoft }}>
                   {`Last active: ${new Date(s.lastActiveAt).toLocaleString()}`}
                 </Text>
               </View>
@@ -160,10 +192,12 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
   );
 };
 
-const SettingsCard = ({ children }: { children: React.ReactNode }) => (
+const SettingsCard = ({ children }: { children: React.ReactNode }) => {
+  const { colors } = useThemeColors();
+  return (
   <View
     style={[{
-      backgroundColor: Colors.white,
+      backgroundColor: colors.white,
       borderRadius: Radii.lg,
       padding: Spacing.md,
       ...Shadows.soft,
@@ -171,12 +205,15 @@ const SettingsCard = ({ children }: { children: React.ReactNode }) => (
   >
     {children}
   </View>
-);
+  );
+};
 
 const SettingsRow = ({ title, subtitle, actionLabel, destructive, onPress }: {
   title: string; subtitle?: string; actionLabel: string;
   destructive?: boolean; onPress: () => void;
-}) => (
+}) => {
+  const { colors } = useThemeColors();
+  return (
   <Pressable
     onPress={onPress}
     android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
@@ -185,40 +222,49 @@ const SettingsRow = ({ title, subtitle, actionLabel, destructive, onPress }: {
       alignItems: 'center',
       paddingVertical: Spacing.md,
       borderBottomWidth: 0.5,
-      borderBottomColor: Colors.creamDeep,
+      borderBottomColor: colors.creamDeep,
     }}
   >
     <View style={{ flex: 1 }}>
-      <Text style={{ fontWeight: '600', color: Colors.charcoal }}>{title}</Text>
-      {subtitle ? <Text style={{ fontSize: 12, color: Colors.charcoalSoft, marginTop: 2 }}>{subtitle}</Text> : null}
+      <Text style={{ fontWeight: '600', color: colors.charcoal }}>{title}</Text>
+      {subtitle ? <Text style={{ fontSize: 12, color: colors.charcoalSoft, marginTop: 2 }}>{subtitle}</Text> : null}
     </View>
-    <Text style={{ color: destructive ? Colors.crimson : Colors.terracotta, fontWeight: '700' }}>
+    <Text style={{ color: destructive ? colors.crimson : colors.terracotta, fontWeight: '700' }}>
       {actionLabel}
     </Text>
   </Pressable>
-);
+  );
+};
 
-const SettingsToggle = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) => (
+const SettingsToggle = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) => {
+  const { colors } = useThemeColors();
+  return (
   <View style={{
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.creamDeep,
+    borderBottomColor: colors.creamDeep,
   }}>
-    <Text style={{ flex: 1, fontWeight: '600', color: Colors.charcoal }}>{label}</Text>
-    <Switch value={value} onValueChange={onChange} thumbColor={value ? Colors.terracotta : Colors.creamDeep} />
+    <Text style={{ flex: 1, fontWeight: '600', color: colors.charcoal }}>{label}</Text>
+    <Switch value={value} onValueChange={onChange} thumbColor={value ? colors.terracotta : colors.creamDeep} />
   </View>
-);
+  );
+};
 
-const SettingsPicker = ({ label, value, options, onChange }: {
-  label: string; value: string; options: string[]; onChange: (v: string) => void;
-}) => (
-  <View style={{ paddingVertical: Spacing.md, borderBottomWidth: 0.5, borderBottomColor: Colors.creamDeep }}>
-    <Text style={{ fontWeight: '600', color: Colors.charcoal, marginBottom: 8 }}>{label}</Text>
+const SettingsPicker = ({ label, value, options, optionLabel, onChange }: {
+  label: string; value: string; options: string[];
+  optionLabel?: (o: string) => string;
+  onChange: (v: string) => void;
+}) => {
+  const { colors } = useThemeColors();
+  return (
+  <View style={{ paddingVertical: Spacing.md, borderBottomWidth: 0.5, borderBottomColor: colors.creamDeep }}>
+    <Text style={{ fontWeight: '600', color: colors.charcoal, marginBottom: 8 }}>{label}</Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
       {options.map((o) => {
         const active = value === o;
+        const display = optionLabel ? optionLabel(o) : o;
         return (
           <Pressable
             key={o}
@@ -226,18 +272,19 @@ const SettingsPicker = ({ label, value, options, onChange }: {
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
             style={{
               paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-              backgroundColor: active ? Colors.terracotta : Colors.creamSoft,
+              backgroundColor: active ? colors.terracotta : colors.creamSoft,
             }}
           >
-            <Text style={{ color: active ? Colors.white : Colors.charcoal, fontWeight: '700', fontSize: 12 }}>
-              {o}
+            <Text style={{ color: active ? colors.white : colors.charcoal, fontWeight: '700', fontSize: 12 }}>
+              {display}
             </Text>
           </Pressable>
         );
       })}
     </View>
   </View>
-);
+  );
+};
 
 async function fetchSessions() {
   const { api } = await import('@/services/api');

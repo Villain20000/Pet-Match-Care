@@ -6,8 +6,9 @@ import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
 import { toast, resolveApiError } from '@/services/toast';
 import { Colors, Spacing } from '@/theme';
+import type { RootStackScreenProps } from '@/navigation/types';
 
-export const ResetPasswordScreen = ({ route, navigation }: any) => {
+export const ResetPasswordScreen = ({ route, navigation }: RootStackScreenProps<'ResetPassword'>) => {
   const t = useT();
   const reset = useAuthStore((s) => s.resetPassword);
   const token: string = route?.params?.token ?? '';

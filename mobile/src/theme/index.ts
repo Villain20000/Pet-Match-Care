@@ -25,6 +25,33 @@ export const Colors = {
   white: '#FFFFFF',
 } as const;
 
+/**
+ * Dark-mode palette. Brand hues (terracotta / sage / crimson) are lifted in
+ * saturation/lightness so they stay legible on the dark surfaces; the cream
+ * family is inverted into a set of blue-charcoal surfaces, and `charcoal`
+ * becomes the foreground text.
+ */
+export const DarkColors = {
+  terracotta: '#E8896B',
+  terracottaSoft: '#A8624A',
+  terracottaDeep: '#F4A287',
+  sage: '#8FC4AB',
+  sageSoft: '#5A8F77',
+  sageDeep: '#A8C9B7',
+  crimson: '#F26B76',
+  crimsonSoft: '#B82A35',
+  crimsonDeep: '#FF8A95',
+  cream: '#161D22',
+  creamSoft: '#1F2A30',
+  creamDeep: '#2A3A42',
+  charcoal: '#F4F1DE',
+  charcoalSoft: '#B8C2C9',
+  charcoalDeep: '#FFFFFF',
+  white: '#1F2A30',
+} as const;
+
+export type ColorPalette = { [K in keyof typeof Colors]: string };
+
 export type ColorKey = keyof typeof Colors;
 
 export const Gradients = {

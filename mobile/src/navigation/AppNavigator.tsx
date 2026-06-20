@@ -10,10 +10,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, View } from 'react-native';
 
-import { Colors, Radii } from '@/theme';
+import { Radii } from '@/theme';
 import type { ColorBlindPreset, ContrastMode } from '@/services/a11y';
 import { installLinkingListeners, parseDeepLink, setPendingDeepLink, consumePendingDeepLink } from '@/services/deeplink';
 import { useT } from '@/services/i18n';
+import { useThemeColors } from '@/services/theme';
 
 import { DashboardScreen } from '@/screens/DashboardScreen';
 import { ReportScreen } from '@/screens/ReportScreen';
@@ -33,7 +34,10 @@ import { MyApplicationsScreen } from '@/screens/MyApplicationsScreen';
 import { TimelineScreen } from '@/screens/TimelineScreen';
 import { NotificationsScreen } from '@/screens/NotificationsScreen';
 import { OnboardingScreen } from '@/screens/OnboardingScreen';
+import { ProfileScreen } from '@/screens/ProfileScreen';
+import { FavoritesScreen } from '@/screens/FavoritesScreen';
 import { useAuthStore } from '@/services/auth';
+import type { PetForAdoptionDto } from '@/types';
 
 export type RootStackParamList = {
   MainStack: undefined;
@@ -43,47 +47,67 @@ export type RootStackParamList = {
   Login: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string } | undefined;
+  // Tab routes — listed so cross-navigator `navigate('Υιοθεσίες')` etc.
+  // are type-safe from stack screens (React Navigation resolves them to
+  // the parent tab navigator).
+  Αρχική: undefined;
+  Καταγραφή: undefined;
+  Υιοθεσίες: undefined;
+  Χάρτης: undefined;
   Χαμένα_ζωάκια: undefined;
   Καρμά_Πίνακας: undefined;
   Παράσημα: undefined;
   Ρυθμίσεις: undefined;
   TwoFactorSetup: undefined;
-  Συμπλήρωση_αίτησης: { pet: any };
+  Συμπλήρωση_αίτησης: { pet: PetForAdoptionDto };
   Οι_αιτήσεις_μου: undefined;
   TimelineScreen: { id: string };
   Notifications: undefined;
+  Profile: undefined;
+  Favorites: undefined;
 };
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
-  <View
-    style={{
-      width: 44,
-      height: 30,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: Radii.pill,
-      backgroundColor: focused ? Colors.terracotta : 'transparent',
-    }}
-  >
-    <Text style={{ fontSize: 18, color: focused ? Colors.white : Colors.charcoalSoft }}>{icon}</Text>
-  </View>
-);
+const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => {
+  const { colors } = useThemeColors();
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: Radii.pill,
+        backgroundColor: focused ? colors.terracotta : 'transparent',
+      }}
+    >
+      <Text style={{ fontSize: 18, color: focused ? colors.white : colors.charcoalSoft }}>{icon}</Text>
+    </View>
+  );
+};
 
-const SettingsHOC = ({ contrast, setContrast, colorBlind, setColorBlind }: any) => (
+interface SettingsHOCProps {
+  contrast: ContrastMode;
+  setContrast: (v: ContrastMode) => void;
+  colorBlind: ColorBlindPreset;
+  setColorBlind: (v: ColorBlindPreset) => void;
+}
+
+const SettingsHOC = ({ contrast, setContrast, colorBlind, setColorBlind }: SettingsHOCProps) => (
   <SettingsScreen contrast={contrast} setContrast={setContrast} colorBlind={colorBlind} setColorBlind={setColorBlind} />
 );
 
 const MainTabs = () => {
   const t = useT();
+  const { colors } = useThemeColors();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.creamSoft,
+          backgroundColor: colors.creamSoft,
           borderTopWidth: 0,
           elevation: 12,
           shadowColor: '#2F3E46',
@@ -95,8 +119,8 @@ const MainTabs = () => {
           paddingTop: 6,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-        tabBarActiveTintColor: Colors.terracottaDeep,
-        tabBarInactiveTintColor: Colors.charcoalSoft,
+        tabBarActiveTintColor: colors.terracottaDeep,
+        tabBarInactiveTintColor: colors.charcoalSoft,
       }}
     >
       <Tab.Screen
@@ -126,23 +150,27 @@ const MainTabs = () => {
 /** Wrap with a hook that re-fires `navigation.setOptions({ title })` on locale change. */
 const withLocalizedTitle =
   (translationKey: string) =>
-  (Screen: React.ComponentType<any>): React.ComponentType<any> =>
+  <P extends { navigation: { setOptions: (opts: { title: string }) => void } }>(
+    Screen: React.ComponentType<P>,
+  ): React.ComponentType<P> =>
   (props) => {
     const t = useT();
-    const navigation = (props as any).navigation;
+    const navigation = props.navigation;
     useEffect(() => {
       navigation?.setOptions?.({ title: t(translationKey) });
     }, [t, navigation]);
     return <Screen {...props} />;
   };
 
-const StackFlow = ({ contrast, setContrast, colorBlind, setColorBlind }: any) => (
+const StackFlow = ({ contrast, setContrast, colorBlind, setColorBlind }: SettingsHOCProps) => {
+  const { colors } = useThemeColors();
+  return (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: Colors.cream },
-      headerTintColor: Colors.charcoal,
+      headerStyle: { backgroundColor: colors.cream },
+      headerTintColor: colors.charcoal,
       headerTitleStyle: { fontWeight: '700' },
-      contentStyle: { backgroundColor: Colors.cream },
+      contentStyle: { backgroundColor: colors.cream },
     }}
   >
     <Stack.Screen name="MainStack" options={{ headerShown: false }} component={MainTabs} />
@@ -157,8 +185,11 @@ const StackFlow = ({ contrast, setContrast, colorBlind, setColorBlind }: any) =>
     <Stack.Screen name="Οι_αιτήσεις_μου" component={MyApplicationsScreen} options={{ title: 'Οι αιτήσεις μου' }} />
     <Stack.Screen name="TimelineScreen" component={TimelineScreen} options={{ title: 'Χρονολόγιο' }} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+    <Stack.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Favorites' }} />
   </Stack.Navigator>
-);
+  );
+};
 
 const AuthFlow = () => (
   <Stack.Navigator screenOptions={{ headerShown: true }}>

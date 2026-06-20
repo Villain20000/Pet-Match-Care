@@ -20,6 +20,7 @@ import { installLinkingListeners } from '@/services/deeplink';
 import { linkingConfig } from '@/navigation/LinkingConfig';
 import { installLanguageInterceptor, useI18nStore } from '@/services/i18n';
 import { installAutoToastErrorInterceptor } from '@/services/toast';
+import { useThemeStore, useThemeColors, useObserveSystemScheme } from '@/services/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* module might not be installed on older Expo SDK */
@@ -35,6 +36,7 @@ const BootGate = ({ children }: { children: React.ReactNode }) => {
         installLanguageInterceptor();
         installAutoToastErrorInterceptor(api);
         await useI18nStore.getState().hydrate();
+        await useThemeStore.getState().hydrate();
 
         await getStoredBundle();
         const token = useAuthStore.getState().token;
@@ -61,6 +63,18 @@ const BootGate = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ThemedShell = () => {
+  const { scheme } = useThemeColors();
+  useObserveSystemScheme();
+  return (
+    <NavigationContainer linking={linkingConfig}>
+      <AppNavigator />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <ToastHost />
+    </NavigationContainer>
+  );
+};
+
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -70,11 +84,7 @@ export default function App() {
           persistOptions={{ persister: queryPersister, maxAge: 1000 * 60 * 60 * 24 }}
         >
           <BootGate>
-            <NavigationContainer linking={linkingConfig}>
-              <AppNavigator />
-              <StatusBar style="dark" />
-              <ToastHost />
-            </NavigationContainer>
+            <ThemedShell />
           </BootGate>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

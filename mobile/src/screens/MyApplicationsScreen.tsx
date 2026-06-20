@@ -8,6 +8,7 @@ import { useMyApplications } from '@/services/applications';
 import { SkeletonLine } from '@/components/Skeleton';
 import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import type { RootStackScreenProps } from '@/navigation/types';
 
 const STATE_COLOR = {
   DRAFT: Colors.charcoalSoft,
@@ -20,7 +21,7 @@ const STATE_COLOR = {
   CLOSED: Colors.charcoalSoft,
 };
 
-export const MyApplicationsScreen = ({ navigation }: any) => {
+export const MyApplicationsScreen = ({ navigation }: RootStackScreenProps<'Οι_αιτήσεις_μου'>) => {
   const t = useT();
   const { data: apps, isLoading } = useMyApplications();
 

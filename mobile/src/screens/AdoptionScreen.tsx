@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,23 @@ import {
   FlatList,
   Modal,
   ActivityIndicator,
+  RefreshControl,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { AppNavigation } from '@/navigation/types';
 import * as Haptics from 'expo-haptics';
 
-import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import { Radii, Shadows, Spacing } from '@/theme';
+import { useThemeColors } from '@/services/theme';
 import { adoptionApi } from '@/services/reports';
 import { useAuthStore } from '@/services/auth';
+import { useFavorites } from '@/services/favorites';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useT } from '@/services/i18n';
+import { toast } from '@/services/toast';
+import { haptic } from '@/services/haptics';
 import type { PetForAdoptionDto } from '@/types';
 
 const MOCK_PETS: PetForAdoptionDto[] = [
@@ -143,27 +151,47 @@ type Filter = 'ALL' | 'DOG' | 'CAT' | 'URGENT';
 export const AdoptionScreen = () => {
   const me = useAuthStore((s) => s.user);
   const t = useT();
+  const { colors } = useThemeColors();
+  const navigation = useNavigation<AppNavigation>();
+  const { isFavorite, toggle } = useFavorites();
 
   const [pets, setPets] = useState<PetForAdoptionDto[]>(MOCK_PETS);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('ALL');
   const [selected, setSelected] = useState<PetForAdoptionDto | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [usedMock, setUsedMock] = useState(false);
   const [expressedInterest, setExpressedInterest] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const list = await adoptionApi.list();
-        if (list.length > 0) setPets(list);
-      } catch {
-        /* keep mocks for demo */
-      } finally {
-        setLoading(false);
+  const load = useCallback(async (isRefresh: boolean) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setLoadError(false);
+    try {
+      const list = await adoptionApi.list();
+      if (list.length > 0) {
+        setPets(list);
+        setUsedMock(false);
+      } else {
+        // Empty real list — keep mocks so the demo isn't blank, but flag it.
+        setPets(MOCK_PETS);
+        setUsedMock(true);
       }
-    })();
-  }, []);
+    } catch {
+      // First load failure → show error state. Refresh failure → keep prior.
+      if (!isRefresh && pets === MOCK_PETS) setLoadError(true);
+      else setUsedMock(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [pets]);
+
+  useEffect(() => {
+    void load(false);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -190,36 +218,50 @@ export const AdoptionScreen = () => {
     }
   };
 
+  const sharePet = async (pet: PetForAdoptionDto) => {
+    void Haptics.selectionAsync();
+    try {
+      await Share.share({ message: t('adoption.shareMessage', { name: pet.name }) });
+    } catch {
+      /* user cancelled */
+    }
+  };
+
+  const onToggleFav = (petId: string) => {
+    haptic.select();
+    toggle(petId);
+    toast.info({ title: isFavorite(petId) ? t('adoption.favoriteRemoved') : t('adoption.favoriteAdded') });
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }} edges={['top']}>
       <View style={{ paddingHorizontal: Spacing.xl, paddingTop: Spacing.md }}>
-        <Text
-          style={{
-            fontSize: 11,
-            fontWeight: '700',
-            letterSpacing: 0.5,
-            color: Colors.charcoalSoft,
-          }}
-        >
-          {t('adoption.overline')}
-        </Text>
-        <Text
-          style={{
-            fontSize: 26,
-            fontWeight: '700',
-            color: Colors.charcoal,
-            letterSpacing: -0.4,
-            marginTop: 2,
-          }}
-        >
-          {t('adoption.title')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: colors.charcoalSoft }}>
+              {t('adoption.overline')}
+            </Text>
+            <Text style={{ fontSize: 26, fontWeight: '700', color: colors.charcoal, letterSpacing: -0.4, marginTop: 2 }}>
+              {t('adoption.title')}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => navigation.navigate('Favorites')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)', borderless: true }}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('adoption.btnFavorites')}
+            style={{ paddingHorizontal: Spacing.sm, paddingVertical: 6 }}
+          >
+            <Text style={{ fontSize: 22 }}>⭐</Text>
+          </Pressable>
+        </View>
 
         {/* Search */}
         <View
           style={[
             {
-              backgroundColor: Colors.white,
+              backgroundColor: colors.white,
               paddingHorizontal: Spacing.lg,
               paddingVertical: Spacing.md,
               borderRadius: Radii.lg,
@@ -232,9 +274,9 @@ export const AdoptionScreen = () => {
         >
           <Text style={{ marginRight: 8, fontSize: 16 }}>🔎</Text>
           <TextInput
-            style={{ flex: 1, fontSize: 15, color: Colors.charcoal }}
+            style={{ flex: 1, fontSize: 15, color: colors.charcoal }}
             placeholder={t('adoption.search')}
-            placeholderTextColor={Colors.charcoalSoft + '99'}
+            placeholderTextColor={colors.charcoalSoft + '99'}
             value={query}
             onChangeText={setQuery}
           />
@@ -267,7 +309,7 @@ export const AdoptionScreen = () => {
                   paddingHorizontal: Spacing.lg,
                   paddingVertical: Spacing.sm + 2,
                   borderRadius: Radii.pill,
-                  backgroundColor: active ? Colors.terracotta : Colors.creamSoft,
+                  backgroundColor: active ? colors.terracotta : colors.creamSoft,
                   marginRight: 8,
                 }}
               >
@@ -275,7 +317,7 @@ export const AdoptionScreen = () => {
                   style={{
                     fontWeight: '700',
                     fontSize: 13,
-                    color: active ? Colors.white : Colors.charcoal,
+                    color: active ? colors.white : colors.charcoal,
                   }}
                 >
                   {f.label}
@@ -286,8 +328,20 @@ export const AdoptionScreen = () => {
         </ScrollView>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={Colors.terracotta} style={{ marginTop: Spacing.xl }} />
+      {loadError && pets === MOCK_PETS && !usedMock ? (
+        <View style={{ alignItems: 'center', marginTop: Spacing.hero, paddingHorizontal: Spacing.xl }}>
+          <Text style={{ fontSize: 40 }}>😿</Text>
+          <Text style={{ fontWeight: '700', color: colors.charcoal, marginTop: Spacing.md }}>{t('common.errorOccurred')}</Text>
+          <Text style={{ color: colors.charcoalSoft, marginTop: 4, textAlign: 'center' }}>{t('common.errorBody')}</Text>
+          <Pressable
+            onPress={() => load(false)}
+            style={{ marginTop: Spacing.md, backgroundColor: colors.terracotta, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm + 2, borderRadius: Radii.pill }}
+          >
+            <Text style={{ color: colors.white, fontWeight: '700' }}>{t('common.retry')}</Text>
+          </Pressable>
+        </View>
+      ) : loading ? (
+        <ActivityIndicator color={colors.terracotta} style={{ marginTop: Spacing.xl }} />
       ) : (
         <FlatList
           data={filtered}
@@ -296,6 +350,7 @@ export const AdoptionScreen = () => {
           contentContainerStyle={{ padding: Spacing.md, paddingBottom: Spacing.hero }}
           columnWrapperStyle={{ gap: Spacing.md, paddingHorizontal: Spacing.sm }}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.terracotta} />}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => {
@@ -306,7 +361,7 @@ export const AdoptionScreen = () => {
               style={[
                 {
                   flex: 1,
-                  backgroundColor: Colors.white,
+                  backgroundColor: colors.white,
                   borderRadius: Radii.lg,
                   overflow: 'hidden',
                   ...Shadows.soft,
@@ -328,14 +383,34 @@ export const AdoptionScreen = () => {
                       paddingHorizontal: 8,
                       paddingVertical: 4,
                       borderRadius: Radii.pill,
-                      backgroundColor: Colors.crimson,
+                      backgroundColor: colors.crimson,
                     }}
                   >
-                    <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 10 }}>
+                    <Text style={{ color: colors.white, fontWeight: '700', fontSize: 10 }}>
                       {t('adoption.urgentBadge')}
                     </Text>
                   </View>
                 ) : null}
+                <Pressable
+                  onPress={() => onToggleFav(item.id)}
+                  android_ripple={{ color: 'rgba(255,255,255,0.25)', borderless: true }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={isFavorite(item.id) ? t('adoption.btnUnfavorite') : t('adoption.btnFavorite')}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: 'rgba(0,0,0,0.35)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>{isFavorite(item.id) ? '❤️' : '🤍'}</Text>
+                </Pressable>
                 <View
                   style={{
                     position: 'absolute',
@@ -344,26 +419,26 @@ export const AdoptionScreen = () => {
                     paddingHorizontal: 8,
                     paddingVertical: 4,
                     borderRadius: Radii.pill,
-                    backgroundColor: Colors.charcoal + 'E6',
+                    backgroundColor: colors.charcoal + 'E6',
                   }}
                 >
-                  <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 11 }}>
+                  <Text style={{ color: colors.white, fontWeight: '700', fontSize: 11 }}>
                     {item.species === 'DOG' ? t('adoption.speciesDog') : t('adoption.speciesCat')}
                   </Text>
                 </View>
               </View>
               <View style={{ padding: 12 }}>
                 <Text
-                  style={{ fontSize: 16, fontWeight: '700', color: Colors.charcoal, letterSpacing: -0.2 }}
+                  style={{ fontSize: 16, fontWeight: '700', color: colors.charcoal, letterSpacing: -0.2 }}
                 >
                   {item.name}
                 </Text>
-                <Text style={{ fontSize: 12, color: Colors.charcoalSoft, marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: colors.charcoalSoft, marginTop: 2 }}>
                   {item.age} · {item.size}
                 </Text>
                 <Text
                   numberOfLines={1}
-                  style={{ fontSize: 12, color: Colors.sageDeep, marginTop: 4, fontWeight: '600' }}
+                  style={{ fontSize: 12, color: colors.sageDeep, marginTop: 4, fontWeight: '600' }}
                 >
                   {item.shelter?.name}
                 </Text>
@@ -371,7 +446,7 @@ export const AdoptionScreen = () => {
             </Pressable>
           )}
           ListEmptyComponent={
-            <Text style={{ textAlign: 'center', color: Colors.charcoalSoft, marginTop: 32 }}>
+            <Text style={{ textAlign: 'center', color: colors.charcoalSoft, marginTop: 32 }}>
               {t('adoption.empty')}
             </Text>
           }
@@ -386,33 +461,63 @@ export const AdoptionScreen = () => {
         onRequestClose={() => setSelected(null)}
       >
         {selected ? (
-          <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }} edges={['top']}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }} edges={['top']}>
             <ScrollView contentContainerStyle={{ paddingBottom: Spacing.hero + 24 }}>
-              <Image
-                source={{ uri: selected.imageUrl }}
-                style={{ width: '100%', height: 280 }}
-                resizeMode="cover"
-              />
+              <View style={{ position: 'relative' }}>
+                <Image
+                  source={{ uri: selected.imageUrl }}
+                  style={{ width: '100%', height: 280 }}
+                  resizeMode="cover"
+                />
+                <View style={{ position: 'absolute', top: 12, right: 12, flexDirection: 'row', gap: 8 }}>
+                  <Pressable
+                    onPress={() => onToggleFav(selected.id)}
+                    android_ripple={{ color: 'rgba(255,255,255,0.25)', borderless: true }}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={isFavorite(selected.id) ? t('adoption.btnUnfavorite') : t('adoption.btnFavorite')}
+                    style={{
+                      width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.35)',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>{isFavorite(selected.id) ? '❤️' : '🤍'}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => sharePet(selected)}
+                    android_ripple={{ color: 'rgba(255,255,255,0.25)', borderless: true }}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('adoption.btnShare')}
+                    style={{
+                      width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.35)',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 18 }}>📤</Text>
+                  </Pressable>
+                </View>
+              </View>
               <View style={{ padding: Spacing.xl, gap: 4 }}>
                 <Text
                   style={{
                     fontSize: 28,
                     fontWeight: '700',
-                    color: Colors.charcoal,
+                    color: colors.charcoal,
                     letterSpacing: -0.5,
                   }}
                 >
                   {selected.name}
                 </Text>
-                <Text style={{ color: Colors.charcoalSoft, fontSize: 15 }}>
+                <Text style={{ color: colors.charcoalSoft, fontSize: 15 }}>
                   {selected.age} · {selected.size} ·{' '}
                   {selected.species === 'DOG' ? t('adoption.chipDog').replace('🐕 ', '') : t('adoption.chipCat').replace('🐈 ', '')}
                 </Text>
-                <Text style={{ color: Colors.terracottaDeep, marginTop: 6, fontWeight: '700' }}>
+                <Text style={{ color: colors.terracottaDeep, marginTop: 6, fontWeight: '700' }}>
                   {selected.shelter?.name} · {selected.shelter?.city}
                 </Text>
 
-                <Text style={{ fontSize: 15, color: Colors.charcoal, lineHeight: 22, marginTop: Spacing.md }}>
+                <Text style={{ fontSize: 15, color: colors.charcoal, lineHeight: 22, marginTop: Spacing.md }}>
                   {selected.description}
                 </Text>
 
@@ -420,7 +525,7 @@ export const AdoptionScreen = () => {
                   style={[
                     {
                       marginTop: Spacing.lg,
-                      backgroundColor: Colors.white,
+                      backgroundColor: colors.white,
                       borderRadius: Radii.lg,
                       padding: Spacing.lg,
                     },
@@ -432,7 +537,7 @@ export const AdoptionScreen = () => {
                       fontSize: 11,
                       fontWeight: '700',
                       letterSpacing: 0.6,
-                      color: Colors.charcoalSoft,
+                      color: colors.charcoalSoft,
                       marginBottom: 6,
                     }}
                   >
@@ -451,11 +556,11 @@ export const AdoptionScreen = () => {
                         {row.ok ? '✅' : '⛔'}
                       </Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontWeight: '700', color: Colors.charcoal }}>
+                        <Text style={{ fontWeight: '700', color: colors.charcoal }}>
                           {row.label}
                         </Text>
                         {row.value ? (
-                          <Text style={{ fontSize: 12, color: Colors.charcoalSoft }}>
+                          <Text style={{ fontSize: 12, color: colors.charcoalSoft }}>
                             {row.value}
                           </Text>
                         ) : null}
@@ -467,7 +572,7 @@ export const AdoptionScreen = () => {
                       style={{
                         marginTop: Spacing.sm,
                         fontStyle: 'italic',
-                        color: Colors.charcoalSoft,
+                        color: colors.charcoalSoft,
                         fontSize: 13,
                       }}
                     >
@@ -496,7 +601,7 @@ export const AdoptionScreen = () => {
                     marginTop: 4,
                   }}
                 >
-                  <Text style={{ color: Colors.charcoalSoft, fontWeight: '700' }}>
+                  <Text style={{ color: colors.charcoalSoft, fontWeight: '700' }}>
                     {t('common.close')}
                   </Text>
                 </Pressable>

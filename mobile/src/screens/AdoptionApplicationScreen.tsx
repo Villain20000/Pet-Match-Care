@@ -10,6 +10,7 @@ import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import { haptic } from '@/services/haptics';
 import { toast, resolveApiError } from '@/services/toast';
+import type { RootStackScreenProps } from '@/navigation/types';
 
 type QKind = 'text' | 'boolean' | 'number';
 interface QuestionnaireQuestion {
@@ -25,7 +26,7 @@ const QUESTIONS: QuestionnaireQuestion[] = [
   { id: 'vetBudget', key: 'application.multiStep.q.vetBudget', kind: 'boolean' },
 ];
 
-export const AdoptionApplicationScreen = ({ route, navigation }: any) => {
+export const AdoptionApplicationScreen = ({ route, navigation }: RootStackScreenProps<'Συμπλήρωση_αίτησης'>) => {
   const t = useT();
   const pet = route?.params?.pet;
   const create = useCreateDraft();
@@ -61,7 +62,7 @@ export const AdoptionApplicationScreen = ({ route, navigation }: any) => {
       haptic.tap();
       await create.mutateAsync(payload);
       haptic.success();
-      navigation.replace('Οι αιτήσεις μου' as never);
+      navigation.replace('Οι_αιτήσεις_μου');
     } catch (err) {
       if (isStepUpRequired(err)) {
         setShowReAuth(true);

@@ -142,6 +142,7 @@ model User {
   userBadges             UserBadge[]
   petsForAdoption        PetForAdoption[]    @relation("ShelterPets") // only when User is a shelter admin
   adoptionApplications   AdoptionApplication[] @relation("Applicant")
+  favorites              Favorite[]
   notifications          Notification[]
 
   @@index([homeLatitude, homeLongitude])
@@ -310,9 +311,28 @@ model PetForAdoption {
 
   shelter      User                 @relation("ShelterPets", fields: [shelterId], references: [id])
   applications AdoptionApplication[]
+  favoritedBy  Favorite[]
 
   @@index([status, species])
   @@index([shelterId])
+}
+
+// -------------------------------------------------------------------------
+// Favorites / wishlist (αποθηκευμένα ζώα προς υιοθεσία)
+// -------------------------------------------------------------------------
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  petId     String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet  PetForAdoption @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, petId], name: "userId_petId")
+  @@index([userId])
+  @@index([petId])
 }
 
 model AdoptionApplication {

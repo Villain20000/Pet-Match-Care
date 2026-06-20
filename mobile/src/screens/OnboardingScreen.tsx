@@ -1,5 +1,5 @@
 /**
- * OnboardingScreen — 3-card tour shown on first run.
+ * OnboardingScreen — 5-card tour shown on first run.
  */
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Dimensions } from 'react-native';
@@ -8,9 +8,11 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Shadows, Spacing } from '@/theme';
+import { useThemeColors } from '@/services/theme';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { haptic } from '@/services/haptics';
 import { useT } from '@/services/i18n';
+import type { RootStackScreenProps } from '@/navigation/types';
 
 interface SlideDef {
   icon: string;
@@ -22,7 +24,7 @@ interface SlideDef {
 const SLIDE_DEFS: SlideDef[] = [
   { icon: '🚨', titleKey: 'onboarding.slide1Title', bodyKey: 'onboarding.slide1Body' },
   {
-    icon: '🚨',
+    icon: '☠️',
     titleKey: 'onboarding.slide2Title',
     bodyKey: 'onboarding.slide2Body',
     accent: Colors.crimson,
@@ -33,27 +35,40 @@ const SLIDE_DEFS: SlideDef[] = [
     bodyKey: 'onboarding.slide3Body',
     accent: Colors.terracotta,
   },
+  {
+    icon: '🏅',
+    titleKey: 'onboarding.slide4Title',
+    bodyKey: 'onboarding.slide4Body',
+    accent: Colors.sage,
+  },
+  {
+    icon: '🌍',
+    titleKey: 'onboarding.slide5Title',
+    bodyKey: 'onboarding.slide5Body',
+    accent: Colors.charcoal,
+  },
 ];
 
 const { width } = Dimensions.get('window');
 
 const AsyncStorageKey = '@petmatchcare/onboardingDone';
 
-export const OnboardingScreen = ({ navigation }: any) => {
+export const OnboardingScreen = ({ navigation }: RootStackScreenProps<'Onboarding'>) => {
   const t = useT();
+  const { colors } = useThemeColors();
   const [step, setStep] = useState(0);
   const translate = useSharedValue(0);
   useEffect(() => {
     translate.value = withTiming(-step * width, { duration: 300 });
     // width is a module-level constant from Dimensions — safe to omit
-     
+
   }, [step, translate]);
 
   const next = async (done = false) => {
     haptic.select();
     if (done || step === SLIDE_DEFS.length - 1) {
       await AsyncStorage.setItem(AsyncStorageKey, 'true');
-      navigation.replace('Main' as never);
+      navigation.replace('MainStack');
       return;
     }
     setStep((s) => s + 1);
@@ -62,16 +77,16 @@ export const OnboardingScreen = ({ navigation }: any) => {
   const skip = async () => {
     haptic.select();
     await AsyncStorage.setItem(AsyncStorageKey, 'true');
-    navigation.replace('Main' as never);
+    navigation.replace('MainStack');
   };
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translate.value }] }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
       <View style={styles.skipRow}>
         <Pressable onPress={skip} style={styles.skipBtn}>
-          <Text style={{ color: Colors.charcoalSoft, fontWeight: '700' }}>{t('common.skip')}</Text>
+          <Text style={{ color: colors.charcoalSoft, fontWeight: '700' }}>{t('common.skip')}</Text>
         </Pressable>
       </View>
 
@@ -82,13 +97,13 @@ export const OnboardingScreen = ({ navigation }: any) => {
               style={[
                 styles.glyph,
                 Shadows.soft,
-                { backgroundColor: SLIDE_DEFS[i]!.accent ?? Colors.terracotta },
+                { backgroundColor: SLIDE_DEFS[i]!.accent ?? colors.terracotta },
               ]}
             >
               <Text style={{ fontSize: 60 }}>{slide.icon}</Text>
             </View>
-            <Text style={styles.title}>{t(slide.titleKey)}</Text>
-            <Text style={styles.body}>{t(slide.bodyKey)}</Text>
+            <Text style={[styles.title, { color: colors.charcoal }]}>{t(slide.titleKey)}</Text>
+            <Text style={[styles.body, { color: colors.charcoalSoft }]}>{t(slide.bodyKey)}</Text>
           </View>
         ))}
       </Animated.View>
@@ -101,7 +116,7 @@ export const OnboardingScreen = ({ navigation }: any) => {
               style={[
                 styles.dot,
                 {
-                  backgroundColor: i === step ? Colors.terracotta : Colors.creamDeep,
+                  backgroundColor: i === step ? colors.terracotta : colors.creamDeep,
                   width: i === step ? 28 : 8,
                 },
               ]}
@@ -125,10 +140,10 @@ const styles = {
     marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: 28, fontWeight: '700' as const, color: Colors.charcoal, letterSpacing: -0.5, textAlign: 'center' as const,
+    fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5, textAlign: 'center' as const,
   },
   body: {
-    marginTop: Spacing.sm, fontSize: 15, color: Colors.charcoalSoft, textAlign: 'center' as const,
+    marginTop: Spacing.sm, fontSize: 15, textAlign: 'center' as const,
     lineHeight: 22, maxWidth: 340,
   },
   dots: { flexDirection: 'row' as const, justifyContent: 'center' as const, marginBottom: Spacing.xl, gap: 6 },

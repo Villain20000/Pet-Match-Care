@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Text, View, RefreshControl, Pressable, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { AppNavigation } from '@/navigation/types';
 import { useAuthStore } from '@/services/auth';
 import { reportsApi, municipalitiesApi } from '@/services/reports';
 import { KarmaPill, SectionLabel } from '@/components/ui';
 import { ActionTile } from '@/components/ActionTile';
 import { StreakWidget } from '@/components/StreakWidget';
-import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import { Radii, Shadows, Spacing } from '@/theme';
 import type { MunicipalityDto, StrayReportDto } from '@/types';
 import { getCurrentLocation } from '@/services/location';
 import { useMyApplications } from '@/services/applications';
 import { useInbox } from '@/services/notifications';
 import { useT, useI18nStore, formatters } from '@/services/i18n';
+import { useThemeColors } from '@/services/theme';
 
 const FALLBACK_MUNIS: MunicipalityDto[] = [
   { name: 'Δήμος Αθηναίων', latitude: 37.9842, longitude: 23.7351 },
@@ -62,10 +64,11 @@ const MOCK_EMERGENCY_NEARBY: StrayReportDto[] = [
 ];
 
 export const DashboardScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AppNavigation>();
   const user = useAuthStore((s) => s.user);
   const t = useT();
   const locale = useI18nStore((s) => s.locale);
+  const { colors } = useThemeColors();
 
   const [municipality, setMunicipality] = useState<MunicipalityDto>(FALLBACK_MUNIS[0]!);
   const [munis, setMunis] = useState<MunicipalityDto[]>(FALLBACK_MUNIS);
@@ -112,13 +115,30 @@ export const DashboardScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }} edges={['top']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, gap: Spacing.sm }}>
+        <Pressable
+          onPress={() => navigation.navigate('Profile')}
+          android_ripple={{ color: 'rgba(0,0,0,0.06)', borderless: true }}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.title')}
+          style={{
+            width: 44, height: 44, borderRadius: 22,
+            backgroundColor: colors.terracotta,
+            alignItems: 'center', justifyContent: 'center',
+            ...Shadows.hush,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.white }}>
+            {(user?.fullName ?? user?.email ?? '?').slice(0, 1).toUpperCase()}
+          </Text>
+        </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.5, color: Colors.charcoalSoft }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.5, color: colors.charcoalSoft }}>
             {t('dashboard.greeting')}
           </Text>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: Colors.charcoal, letterSpacing: -0.3 }} numberOfLines={1}>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: colors.charcoal, letterSpacing: -0.3 }} numberOfLines={1}>
             {user?.fullName ?? t('dashboard.greetingFallbackName')}
           </Text>
         </View>
@@ -127,7 +147,7 @@ export const DashboardScreen = () => {
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: Spacing.xl, paddingBottom: Spacing.hero }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.terracotta} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.terracotta} />}
       >
         {/* Municipality + Karma hud */}
         <View style={{ marginTop: Spacing.sm, flexDirection: 'row', gap: Spacing.sm }}>
@@ -137,7 +157,7 @@ export const DashboardScreen = () => {
             style={[
               {
                 flex: 1,
-                backgroundColor: Colors.creamSoft,
+                backgroundColor: colors.creamSoft,
                 paddingHorizontal: Spacing.lg,
                 paddingVertical: Spacing.md,
                 borderRadius: Radii.lg,
@@ -149,14 +169,14 @@ export const DashboardScreen = () => {
           >
             <Text style={{ fontSize: 18, marginRight: 8 }}>🏛️</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 10, letterSpacing: 0.5, fontWeight: '700', color: Colors.charcoalSoft }}>
+              <Text style={{ fontSize: 10, letterSpacing: 0.5, fontWeight: '700', color: colors.charcoalSoft }}>
                 {t('dashboard.municipalityLabel')}
               </Text>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.charcoal }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.charcoal }}>
                 {municipality.name}
               </Text>
             </View>
-            <Text style={{ fontSize: 14, color: Colors.charcoalSoft }}>{showMuniPicker ? '▲' : '▼'}</Text>
+            <Text style={{ fontSize: 14, color: colors.charcoalSoft }}>{showMuniPicker ? '▲' : '▼'}</Text>
           </Pressable>
 
           <KarmaPill points={user?.karmaPoints ?? 0} />
@@ -164,7 +184,7 @@ export const DashboardScreen = () => {
 
         {/* Municipality picker */}
         {showMuniPicker ? (
-          <View style={{ marginTop: Spacing.sm, backgroundColor: Colors.white, borderRadius: Radii.lg, padding: Spacing.sm }}>
+          <View style={{ marginTop: Spacing.sm, backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.sm }}>
             {munis.map((m: MunicipalityDto) => (
               <Pressable
                 key={m.name}
@@ -172,7 +192,7 @@ export const DashboardScreen = () => {
                 android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
                 style={{ paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md }}
               >
-                <Text style={{ color: Colors.charcoal, fontWeight: m.name === municipality.name ? '700' : '500' }}>{m.name}</Text>
+                <Text style={{ color: colors.charcoal, fontWeight: m.name === municipality.name ? '700' : '500' }}>{m.name}</Text>
               </Pressable>
             ))}
           </View>
@@ -237,21 +257,21 @@ export const DashboardScreen = () => {
                 {
                   width: 260,
                   marginRight: Spacing.md,
-                  backgroundColor: Colors.white,
+                  backgroundColor: colors.white,
                   borderRadius: Radii.lg,
                   padding: Spacing.md,
                 },
                 Shadows.soft,
               ]}
             >
-              <View style={{ backgroundColor: Colors.crimson, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' }}>
-                <Text style={{ color: Colors.white, fontSize: 11, fontWeight: '700' }}>{t('dashboard.meatballBadge')}</Text>
+              <View style={{ backgroundColor: colors.crimson, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' }}>
+                <Text style={{ color: colors.white, fontSize: 11, fontWeight: '700' }}>{t('dashboard.meatballBadge')}</Text>
               </View>
-              <Text numberOfLines={2} style={{ marginTop: 6, fontWeight: '700', color: Colors.charcoal, fontSize: 14 }}>
+              <Text numberOfLines={2} style={{ marginTop: 6, fontWeight: '700', color: colors.charcoal, fontSize: 14 }}>
                 {item.description ?? '—'}
               </Text>
-              <Text style={{ marginTop: 4, fontSize: 12, color: Colors.charcoalSoft }}>📍 {item.addressHint ?? '—'}</Text>
-              <Text style={{ marginTop: 4, fontSize: 11, color: Colors.charcoalSoft }}>
+              <Text style={{ marginTop: 4, fontSize: 12, color: colors.charcoalSoft }}>📍 {item.addressHint ?? '—'}</Text>
+              <Text style={{ marginTop: 4, fontSize: 11, color: colors.charcoalSoft }}>
                 {formatters.relative(item.createdAt, locale, t)}
               </Text>
             </Pressable>
@@ -259,8 +279,8 @@ export const DashboardScreen = () => {
         </ScrollView>
 
         <SectionLabel title={t('dashboard.notificationsTitle')} right={
-          <Pressable onPress={() => navigation.navigate('Notifications' as never)}>
-            <Text style={{ color: Colors.terracottaDeep, fontWeight: '700' }}>{t('dashboard.notificationsAll')}</Text>
+          <Pressable onPress={() => navigation.navigate('Notifications')}>
+            <Text style={{ color: colors.terracottaDeep, fontWeight: '700' }}>{t('dashboard.notificationsAll')}</Text>
           </Pressable>
         } />
         <View style={{ gap: 6 }}>
@@ -271,30 +291,30 @@ export const DashboardScreen = () => {
                 {
                   padding: Spacing.md,
                   borderRadius: Radii.md,
-                  backgroundColor: n.readAt ? Colors.creamSoft : Colors.white,
+                  backgroundColor: n.readAt ? colors.creamSoft : colors.white,
                   borderLeftWidth: 4,
-                  borderLeftColor: n.readAt ? 'transparent' : Colors.terracotta,
+                  borderLeftColor: n.readAt ? 'transparent' : colors.terracotta,
                 },
                 Shadows.hush,
               ]}
             >
-              <Text style={{ fontWeight: '700', color: Colors.charcoal }}>{n.title}</Text>
-              <Text style={{ fontSize: 13, color: Colors.charcoalSoft, marginTop: 4 }}>{n.body}</Text>
+              <Text style={{ fontWeight: '700', color: colors.charcoal }}>{n.title}</Text>
+              <Text style={{ fontSize: 13, color: colors.charcoalSoft, marginTop: 4 }}>{n.body}</Text>
             </View>
           ))}
           {!inbox.isLoading && (inbox.data?.items?.length ?? 0) === 0 ? (
-            <Text style={{ color: Colors.charcoalSoft, fontSize: 13 }}>
+            <Text style={{ color: colors.charcoalSoft, fontSize: 13 }}>
               {t('dashboard.notificationsEmpty')}
             </Text>
           ) : null}
           {inbox.isLoading ? (
-            <ActivityIndicator color={Colors.terracotta} style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }} />
+            <ActivityIndicator color={colors.terracotta} style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }} />
           ) : null}
         </View>
 
         <SectionLabel title={t('dashboard.applicationsTitle')} right={
-          <Pressable onPress={() => navigation.navigate('Οι_αιτήσεις_μου' as never)}>
-            <Text style={{ color: Colors.terracottaDeep, fontWeight: '700' }}>{t('dashboard.applicationsAll')}</Text>
+          <Pressable onPress={() => navigation.navigate('Οι_αιτήσεις_μου')}>
+            <Text style={{ color: colors.terracottaDeep, fontWeight: '700' }}>{t('dashboard.applicationsAll')}</Text>
           </Pressable>
         } />
         <View style={{ gap: 6 }}>
@@ -306,20 +326,20 @@ export const DashboardScreen = () => {
               style={[
                 {
                   padding: Spacing.md,
-                  backgroundColor: Colors.white,
+                  backgroundColor: colors.white,
                   borderRadius: Radii.md,
                 },
                 Shadows.hush,
               ]}
             >
-              <Text style={{ fontWeight: '700', color: Colors.charcoal }}>{a.state}</Text>
-              <Text numberOfLines={1} style={{ fontSize: 13, color: Colors.charcoalSoft, marginTop: 4 }}>
+              <Text style={{ fontWeight: '700', color: colors.charcoal }}>{a.state}</Text>
+              <Text numberOfLines={1} style={{ fontSize: 13, color: colors.charcoalSoft, marginTop: 4 }}>
                 {a.motivation}
               </Text>
             </Pressable>
           ))}
           {!apps.isLoading && (apps.data?.length ?? 0) === 0 ? (
-            <Text style={{ color: Colors.charcoalSoft, fontSize: 13 }}>{t('dashboard.applicationsEmpty')}</Text>
+            <Text style={{ color: colors.charcoalSoft, fontSize: 13 }}>{t('dashboard.applicationsEmpty')}</Text>
           ) : null}
         </View>
       </ScrollView>

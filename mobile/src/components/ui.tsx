@@ -11,6 +11,7 @@ import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reani
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import { useT } from '@/services/i18n';
 
 // Re-export so screens can treat `ui.tsx` as the canonical component bucket
 // without having to remember per-component file paths.
@@ -44,7 +45,7 @@ export const Pill = ({
   ...rest
 }: PillProps): React.ReactElement => {
   const palette = variantMap[variant];
-  const handlePress = (e: any) => {
+  const handlePress: PressableProps['onPress'] = (e) => {
     void Haptics.selectionAsync();
     onPress?.(e);
   };
@@ -86,7 +87,9 @@ interface KarmaPillProps extends ViewProps {
   points: number;
 }
 
-export const KarmaPill = ({ points, style, ...rest }: KarmaPillProps) => (
+export const KarmaPill = ({ points, style, ...rest }: KarmaPillProps) => {
+  const t = useT();
+  return (
   <View
     style={[
       {
@@ -121,10 +124,11 @@ export const KarmaPill = ({ points, style, ...rest }: KarmaPillProps) => (
         color: Colors.charcoalSoft,
       }}
     >
-      ΠΟΝΤΟΙ ΚΑΡΜΑ
+      {t('common.karmaPoints')}
     </Text>
   </View>
-);
+  );
+};
 
 interface ScreenContainerProps extends ViewProps {
   padded?: boolean;

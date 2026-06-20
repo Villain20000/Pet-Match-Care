@@ -6,8 +6,9 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
 import { Colors, Spacing } from '@/theme';
+import type { RootStackScreenProps } from '@/navigation/types';
 
-export const ForgotPasswordScreen = ({ navigation }: any) => {
+export const ForgotPasswordScreen = ({ navigation }: RootStackScreenProps<'ForgotPassword'>) => {
   const t = useT();
   const forgot = useAuthStore((s) => s.forgotPassword);
   const [email, setEmail] = useState('');

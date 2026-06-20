@@ -9,6 +9,7 @@ import { SkeletonLine } from '@/components/Skeleton';
 import { useTimeline } from '@/services/timeline';
 import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import type { RootStackScreenProps } from '@/navigation/types';
 
 const STATUS_COLOR: Record<string, string> = {
   OPEN: Colors.terracotta,
@@ -26,9 +27,9 @@ const STATUS_TRANSLATION_KEY: Record<string, string> = {
   EXPIRED: 'timeline.statusExpired',
 };
 
-export const TimelineScreen = ({ route }: any) => {
+export const TimelineScreen = ({ route }: RootStackScreenProps<'TimelineScreen'>) => {
   const t = useT();
-  const id: string = route?.params?.id ?? route?.params?.reportId ?? '';
+  const id: string = route?.params?.id ?? '';
   const { data, isLoading } = useTimeline(id);
 
   if (isLoading || !data) {
