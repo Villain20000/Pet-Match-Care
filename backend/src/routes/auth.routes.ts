@@ -18,7 +18,7 @@ import {
 } from '@/controllers/auth.controller';
 import { begin, confirm, disable } from '@/controllers/totp.controller';
 import { callbackGoogle, startGoogle } from '@/controllers/oauth.controller';
-import { requireAuth, requireStepUp } from '@/middlewares/auth';
+import { requireAuth } from '@/middlewares/auth';
 import { wireError } from '@/middlewares/error';
 
 export const authRouter = Router();
@@ -63,7 +63,7 @@ authRouter.get('/verify-email', (req, res) => {
     const { status, body } = wireError(req, 400, 'MISSING_TOKEN');
     return res.status(status).json(body);
   }
-  res.redirect(302, `${env.APP_DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(token)}`);
+  return res.redirect(302, `${env.APP_DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(token)}`);
 });
 
 authRouter.get('/reset-password', (req, res) => {
@@ -72,5 +72,5 @@ authRouter.get('/reset-password', (req, res) => {
     const { status, body } = wireError(req, 400, 'MISSING_TOKEN');
     return res.status(status).json(body);
   }
-  res.redirect(302, `${env.APP_DEEP_LINK_SCHEME}://reset-password?token=${encodeURIComponent(token)}`);
+  return res.redirect(302, `${env.APP_DEEP_LINK_SCHEME}://reset-password?token=${encodeURIComponent(token)}`);
 });

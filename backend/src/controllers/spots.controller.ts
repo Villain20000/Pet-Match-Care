@@ -23,7 +23,7 @@ export const createSpot = async (req: Request, res: Response) => {
 
   const spot = await prisma.petFriendlySpot.create({
     data: {
-      creatorId: req.user.sub,
+      creatorId: req.user!.sub,
       name: input.name,
       category: input.category,
       latitude: input.latitude,
@@ -35,7 +35,7 @@ export const createSpot = async (req: Request, res: Response) => {
   // Creator starts with an implicit +1 — spots need at least three
   // confirmations to be marked verified.
   await prisma.spotVote.create({
-    data: { userId: req.user.sub, spotId: spot.id, value: 1 },
+    data: { userId: req.user!.sub, spotId: spot.id, value: 1 },
   });
   await prisma.petFriendlySpot.update({
     where: { id: spot.id },

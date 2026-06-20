@@ -20,6 +20,8 @@ export const Colors = {
   creamDeep: '#E8E4C9',
   charcoal: '#2F3E46',
   charcoalSoft: '#4A5C66',
+  /** Darker variant of `charcoal` used for badges/text emphasis (≥4.5:1 on cream). */
+  charcoalDeep: '#1F2A30',
   white: '#FFFFFF',
 } as const;
 
@@ -30,7 +32,21 @@ export const Gradients = {
   calmGrove: ['#81B29A', '#A8C9B7'] as const,
   emergency: ['#E63946', '#F26B76'] as const,
   midnight: ['#2F3E46', '#4A5C66'] as const,
-};
+  // Refined per-accent pairs for cards/tiles
+  terracottaGlow: ['#E07A5F', '#C25B3F'] as const,
+  sageGlow: ['#81B29A', '#5A8F77'] as const,
+  crimsonGlow: ['#E63946', '#B82A35'] as const,
+  charcoalGlow: ['#4A5C66', '#2F3E46'] as const,
+  creamLift: ['#FBF8E8', '#F4F1DE'] as const,
+} as const;
+
+/** Subtle translucent overlay used for glass-like scrims over images. */
+export const Glass = {
+  scrim: 'rgba(47, 62, 70, 0.45)',
+  scrimSoft: 'rgba(47, 62, 70, 0.25)',
+  light: 'rgba(255, 255, 255, 0.72)',
+  lightSoft: 'rgba(255, 255, 255, 0.45)',
+} as const;
 
 export const Shadows = {
   soft: {
@@ -85,6 +101,23 @@ export const Typography = {
   micro: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.4 },
 };
 
+/**
+ * Motion presets — shared spring/timing configs so animations feel
+ * consistent across the app. Used by Reanimated `withSpring`/`withTiming`.
+ */
+export const Motion = {
+  /** Gentle press-down feedback for tappable elements. */
+  pressSpring: { damping: 14, stiffness: 320, mass: 0.6 },
+  /** Soft entrance for cards/sheets. */
+  enterSpring: { damping: 18, stiffness: 160, mass: 0.9 },
+  /** Snappy selection (chips, tabs). */
+  selectSpring: { damping: 16, stiffness: 260, mass: 0.7 },
+  /** Pressed scale factor for buttons/tiles. */
+  pressScale: 0.96,
+  /** Subtle hover/lift scale for cards. */
+  liftScale: 1.02,
+} as const;
+
 export const POISON_RADIUS_KM = 2;
 
 // ---------------------------------------------------------------------------
@@ -94,7 +127,12 @@ import type { ColorBlindPreset, ContrastMode } from '@/services/a11y';
 import { colorBlindShifts } from '@/services/a11y';
 
 export interface Theme {
-  colors: typeof Colors;
+  // `crimson` and `sage` are intentionally overridable per-preset; the
+  // rest of the palette is immutable.
+  colors: Omit<typeof Colors, 'crimson' | 'sage'> & {
+    crimson: string;
+    sage: string;
+  };
   contrast: ContrastMode;
   cb: ColorBlindPreset;
 }

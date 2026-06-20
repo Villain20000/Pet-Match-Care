@@ -5,22 +5,15 @@ import { SkeletonCard } from '@/components/Skeleton';
 import { useAllBadges, useMyBadges } from '@/services/badges';
 import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import type { Badge } from '@/services/badges';
 
-type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
-
-interface Badge {
-  id: string;
-  name: string;
-  description: string;
-  iconEmoji?: string;
-  rarity?: Rarity;
-}
+type SeedCode = 'FIRST_REPORT' | 'FIVE_REPORTS' | 'POISON_HERO' | 'STREAK_30' | 'ADOPTION_GOD';
 
 interface SeedBadge {
   id: string;
-  code: 'FIRST_REPORT' | 'FIVE_REPORTS' | 'POISON_HERO' | 'STREAK_30' | 'ADOPTION_GOD';
+  code: SeedCode;
   iconEmoji: string;
-  rarity: Rarity;
+  rarity: Badge['rarity'];
 }
 
 const SEED_BADGES: SeedBadge[] = [
@@ -31,7 +24,7 @@ const SEED_BADGES: SeedBadge[] = [
   { id: 's5', code: 'ADOPTION_GOD', iconEmoji: '🏆', rarity: 'LEGENDARY' },
 ];
 
-const SEED_KEY: Record<SeedBadge['code'], { name: string; desc: string }> = {
+const SEED_KEY: Record<SeedCode, { name: string; desc: string }> = {
   FIRST_REPORT: { name: 'firstReportName', desc: 'firstReportDesc' },
   FIVE_REPORTS: { name: 'fiveReportsName', desc: 'fiveReportsDesc' },
   POISON_HERO: { name: 'poisonHeroName', desc: 'poisonHeroDesc' },
@@ -43,11 +36,12 @@ function localizeSeed(seed: SeedBadge, t: (k: string) => string): Badge {
   const keys = SEED_KEY[seed.code];
   return {
     id: seed.id,
+    code: seed.code,
     name: t(`badges.seeds.${keys.name}`),
     description: t(`badges.seeds.${keys.desc}`),
     iconEmoji: seed.iconEmoji,
     rarity: seed.rarity,
-  };
+  } as Badge;
 }
 
 export const BadgesScreen = () => {
@@ -55,10 +49,10 @@ export const BadgesScreen = () => {
   const all = useAllBadges();
   const mine = useMyDecrypted();
 
-  const earnedIds = new Set((mine.data ?? []).map((b) => b.id));
-  const list = mine.data ?? [];
-  const remaining = (all.data ?? SEED_BADGES.map((s) => localizeSeed(s, t))).filter(
-    (b) => !earnedIds.has(b.id)
+  const earnedIds = new Set((mine.data ?? []).map((b: Badge) => b.id));
+  const list: Badge[] = mine.data ?? [];
+  const remaining: Badge[] = (all.data ?? (SEED_BADGES.map((s) => localizeSeed(s, t)) as Badge[])).filter(
+    (b: Badge) => !earnedIds.has(b.id)
   );
 
   return (
@@ -116,9 +110,7 @@ export const BadgesScreen = () => {
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-// Tiny convenience wrapper that falls back to seed data when the API is offline.
+};  // Tiny convenience wrapper that falls back to seed data when the API is offline.
 function useMyDecrypted() {
   const mine = useMyBadges();
   if (mine.isError || (mine.data && mine.data.length === 0)) {

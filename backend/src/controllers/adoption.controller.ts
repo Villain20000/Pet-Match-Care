@@ -57,7 +57,7 @@ export const listPets = async (req: Request, res: Response) => {
     },
     orderBy: [{ isUrgent: 'desc' }, { createdAt: 'desc' }],
     take: 120,
-    include: { shelter: { select: { id: true, name: true, city: true, phone: true } } },
+    include: { shelter: { select: { id: true, fullName: true } } },
   });
 
   return res.json({ count: pets.length, pets });
@@ -81,7 +81,7 @@ export const expressInterest = async (req: Request, res: Response) => {
   if (!pet) throwHttp(req, 404, 'NOT_FOUND');
 
   const set = interests.get(petId) ?? new Set<string>();
-  set.add(req.user.sub);
+  set.add(req.user!.sub);
   interests.set(petId, set);
 
   return res.json({

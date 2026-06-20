@@ -63,7 +63,7 @@ export const MyApplicationsScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View style={{ gap: Spacing.md }}>
-            {(apps ?? []).map((app) => (
+            {(apps ?? []).map((app: { id: string; state: keyof typeof STATE_COLOR; updatedAt: string; motivation: string }) => (
               <Pressable
                 key={app.id}
                 onPress={() => navigation.navigate('TimelineScreen', { id: app.id })}

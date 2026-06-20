@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AxiosError } from 'axios';
-import { api, ApiError, getStoredBundle, getStoredUserJson, persistBundle, persistUser, subscribeAuth, issueBundle } from './api';
+import { api, getStoredBundle, persistBundle, persistUser, subscribeAuth, issueBundle } from './api';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import * as Application from 'expo-application';
@@ -36,8 +36,11 @@ interface LoginResponse {
 
 interface AuthState {
   user: AuthenticatedUser | null;
+  /** Short-lived access token; nullable when logged out. */
+  token: string | null;
   pushReady: boolean;
   requiresEmailVerification: boolean;
+  setHomeLocation: (latitude: number, longitude: number) => void;
 
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResponse>;
@@ -67,15 +70,16 @@ interface AuthState {
 const detectLocale = (): Locale => {
   try {
     const locales = Localization.getLocales?.() ?? [];
-    const primary = locales[0]?.languageCode ?? Localization.locale ?? 'en';
+    const primary = locales[0]?.languageCode ?? 'en';
     return primary.startsWith('el') ? 'el' : 'en';
   } catch {
-    return 'el';
+    return 'en';
   }
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  token: null,
   pushReady: false,
   requiresEmailVerification: false,
 
@@ -86,10 +90,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await api.get<MeResponse>('/auth/me');
       set({
         user: res.data.user,
+        token: bundle.accessToken,
         requiresEmailVerification: !res.data.user.emailVerifiedAt,
       });
     } catch (err) {
-      if ((err as AxiosError).response?.status === 401) {
+      const status = (err as AxiosError).response?.status;
+      if (status === 401) {
         await get().logout();
       }
     }
@@ -107,7 +113,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       refreshExpiresAt: res.data.refreshExpiresAt,
     });
     await persistUser(JSON.stringify(res.data.user));
-    set({ user: res.data.user, requiresEmailVerification: !res.data.user.emailVerifiedAt });
+    set({
+      user: res.data.user,
+      token: res.data.accessToken,
+      requiresEmailVerification: !res.data.user.emailVerifiedAt,
+    });
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     return res.data;
   },
@@ -126,17 +136,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       refreshExpiresAt: res.data.refreshExpiresAt,
     });
     await persistUser(JSON.stringify(res.data.user));
-    set({ user: res.data.user, requiresEmailVerification: true });
+    set({
+      user: res.data.user,
+      token: res.data.accessToken,
+      requiresEmailVerification: true,
+    });
     return res.data;
   },
 
   setLocale: async (locale) => {
     const user = get().user;
     if (!user) return;
-    set({ user: { ...user, locale } });
+    const fresh = await getStoredBundle();
+    set({ user: { ...user, locale }, token: fresh?.accessToken ?? get().token });
     try {
       await api.patch('/auth/me', { locale });
     } catch { /* offline is fine */ }
+  },
+
+  // Persist home coordinates on the backend for later proximity matching.
+  setHomeLocation: (latitude, longitude) => {
+    const user = get().user;
+    if (!user) return;
+    set({ user: { ...user } });
+    // Persist on the backend via the existing `/auth/me` PATCH endpoint.
+    try {
+      void api.patch('/auth/me', { homeLatitude: latitude, homeLongitude: longitude });
+    } catch { /* offline is fine — settings can resync later */ }
   },
 
   startGoogleSso: async () => {
@@ -169,7 +195,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch { /* ignore */ }
     await persistBundle(null);
     await persistUser(null);
-    set({ user: null, requiresEmailVerification: false });
+    set({ user: null, token: null, requiresEmailVerification: false });
   },
 
   logoutEverywhere: async () => {
@@ -177,7 +203,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     finally {
       await persistBundle(null);
       await persistUser(null);
-      set({ user: null, requiresEmailVerification: false });
+      set({ user: null, token: null, requiresEmailVerification: false });
     }
   },
 
@@ -249,7 +275,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 subscribeAuth(() => {});
 
 export const deviceId = async (): Promise<string> => {
-  const existing = await getStoredUserJson();
   void Application;
   return Crypto.randomUUID();
 };

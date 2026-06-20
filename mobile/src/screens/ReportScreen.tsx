@@ -9,11 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import MapView, { Marker, type Region } from 'react-native-maps';
 
-import { Field, Textarea, ChipSelect } from '@/components/Field';
+import { Textarea, ChipSelect } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import { reportsApi } from '@/services/reports';
@@ -24,7 +23,6 @@ import { toast, resolveApiError } from '@/services/toast';
 import type { StrayReportDto } from '@/types';
 
 export const ReportScreen = () => {
-  const me = useAuthStore((s) => s.user);
   const t = useT();
 
   const [image, setImage] = useState<{ uri: string } | null>(null);
@@ -35,11 +33,14 @@ export const ReportScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [region, setRegion] = useState<Region | null>(null);
 
+  // Map the legacy (timeline.controller) condition vocabulary onto the
+  // canonical ReportCondition enum that the stray-reports API accepts.
+  // Each label picks one of {STABLE, INJURED, CRITICAL, DECEASED}.
   const CONDITIONS: { label: string; value: StrayReportDto['condition'] }[] = [
-    { label: t('report.conditionMedical'), value: 'MEDICAL' },
-    { label: t('report.conditionSterilization'), value: 'STERILIZATION' },
-    { label: t('report.conditionLost'), value: 'LOST' },
-    { label: t('report.conditionScare'), value: 'SCARE' },
+    { label: t('report.conditionMedical'), value: 'INJURED' },
+    { label: t('report.conditionSterilization'), value: 'STABLE' },
+    { label: t('report.conditionLost'), value: 'STABLE' },
+    { label: t('report.conditionScare'), value: 'STABLE' },
   ];
 
   useEffect(() => {

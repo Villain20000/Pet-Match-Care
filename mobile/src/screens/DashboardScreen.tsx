@@ -24,7 +24,7 @@ const MOCK_EMERGENCY_NEARBY: StrayReportDto[] = [
     id: 'e1',
     reporterId: 'demo',
     imageUrl: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800',
-    condition: 'MEDICAL',
+    condition: 'INJURED',
     description: 'Σκυλάκι τραυματισμένο στο πόδι, αιμορραγία. Παρακαλώ βοηθήστε.',
     latitude: 37.984,
     longitude: 23.735,
@@ -37,7 +37,7 @@ const MOCK_EMERGENCY_NEARBY: StrayReportDto[] = [
     id: 'e2',
     reporterId: 'demo',
     imageUrl: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=800',
-    condition: 'MEDICAL',
+    condition: 'INJURED',
     description: 'Γατάκι χωρίς συνείδηση δίπλα σε κάδο.',
     latitude: 37.99,
     longitude: 23.74,
@@ -50,7 +50,7 @@ const MOCK_EMERGENCY_NEARBY: StrayReportDto[] = [
     id: 'e3',
     reporterId: 'demo',
     imageUrl: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=800',
-    condition: 'MEDICAL',
+    condition: 'INJURED',
     description: 'Μικρό σκυλάκι χρειάζεται άμεση κτηνιατρική φροντίδα.',
     latitude: 37.98,
     longitude: 23.73,
@@ -165,7 +165,7 @@ export const DashboardScreen = () => {
         {/* Municipality picker */}
         {showMuniPicker ? (
           <View style={{ marginTop: Spacing.sm, backgroundColor: Colors.white, borderRadius: Radii.lg, padding: Spacing.sm }}>
-            {munis.map((m) => (
+            {munis.map((m: MunicipalityDto) => (
               <Pressable
                 key={m.name}
                 onPress={() => { setMunicipality(m); setShowMuniPicker(false); }}
@@ -228,7 +228,7 @@ export const DashboardScreen = () => {
 
         <SectionLabel title={t('dashboard.emergencyTitle')} subtitle={t('dashboard.emergencySubtitle')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {emergencies.map((item) => (
+          {emergencies.map((item: StrayReportDto) => (
             <Pressable
               key={item.id}
               onPress={() => navigation.navigate('TimelineScreen', { id: item.id })}
@@ -264,7 +264,7 @@ export const DashboardScreen = () => {
           </Pressable>
         } />
         <View style={{ gap: 6 }}>
-          {(inbox.data?.items ?? []).slice(0, 2).map((n) => (
+          {(inbox.data?.items ?? []).slice(0, 2).map((n: { id: string; title: string; body: string; readAt: string | null }) => (
             <View
               key={n.id}
               style={[
@@ -298,7 +298,7 @@ export const DashboardScreen = () => {
           </Pressable>
         } />
         <View style={{ gap: 6 }}>
-          {(apps.data ?? []).slice(0, 2).map((a) => (
+          {(apps.data ?? []).slice(0, 2).map((a: { id: string; state: string; motivation: string }) => (
             <Pressable
               key={a.id}
               onPress={() => navigation.navigate('TimelineScreen', { id: a.id })}

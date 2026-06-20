@@ -75,7 +75,7 @@ export const LeaderboardScreen = () => {
         </View>
       ) : (
         <ScrollView style={{ paddingHorizontal: Spacing.xl, marginTop: Spacing.md }}>
-          {rows.map((row, idx) => {
+          {rows.map((row: { user: { id: string; fullName: string | null; karmaPoints: number }; reports: number }, idx: number) => {
             const medal = ['🥇', '🥈', '🥉'][idx] ?? `#${idx + 1}`;
             return (
               <View

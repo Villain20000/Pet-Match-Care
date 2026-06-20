@@ -13,6 +13,8 @@ import { createNotification } from './notifications.service';
  *   any                 → CLOSED                     : APPLICANT (cancel) | SHELTER_ADMIN (reject)
  */
 export const TRANSITIONS: Record<AdoptionStatus, AdoptionStatus[]> = {
+  AVAILABLE:           [],
+  ADOPTED:             [],
   DRAFT:               ['SUBMITTED', 'CLOSED'],
   SUBMITTED:           ['SCREENING', 'CLOSED'],
   SCREENING:           ['HOME_CHECK_SCHEDULED', 'REJECTED', 'CLOSED'],
@@ -24,6 +26,8 @@ export const TRANSITIONS: Record<AdoptionStatus, AdoptionStatus[]> = {
 };
 
 const ROLE_OWNER: Record<AdoptionStatus, Role[]> = {
+  AVAILABLE:            ['SHELTER_ADMIN', 'PLATFORM_ADMIN'],
+  ADOPTED:              ['SHELTER_ADMIN', 'PLATFORM_ADMIN'],
   DRAFT:                ['CITIZEN'],
   SUBMITTED:            ['SHELTER_ADMIN', 'PLATFORM_ADMIN'],
   SCREENING:            ['SHELTER_ADMIN', 'PLATFORM_ADMIN'],

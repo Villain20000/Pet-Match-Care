@@ -421,7 +421,7 @@ export const en: Pane = {
     ctaDismiss: 'Dismiss',
     ctaRetry: 'Retry',
   },
-} as const;
+};
 
 function rankLabel(pos: number): string {
   if (pos === 0) return '🥇';

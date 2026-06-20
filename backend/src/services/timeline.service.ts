@@ -20,7 +20,7 @@ export const appendUpdate = async (args: {
   authorId: string;
   authorRole: Role;
   status: ReportStatus;
-  message: string;
+  body: string;
   photoUrl?: string;
 }) => {
   if (!ALLOWED_ACTORS.includes(args.authorRole)) {
@@ -39,7 +39,7 @@ export const appendUpdate = async (args: {
         reportId: args.reportId,
         authorId: args.authorId,
         status: args.status,
-        message: args.message,
+        body: args.body,
         photoUrl: args.photoUrl ?? null,
       },
     });

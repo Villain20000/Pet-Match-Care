@@ -56,7 +56,7 @@ const useI18nStore = create<I18nState>((set) => ({
         return;
       }
       const deviceLocales = Localization.getLocales?.() ?? [];
-      const primary = deviceLocales[0]?.languageCode ?? Localization.locale ?? 'en';
+      const primary = deviceLocales[0]?.languageCode ?? 'en';
       set({ locale: primary.startsWith('el') ? 'el' : 'en', ready: true });
     } catch {
       set({ locale: 'el', ready: true });
@@ -128,8 +128,10 @@ export const formatters = {
     }).format(new Date(input)),
   number: (input: number, locale: Locale, opts?: Intl.NumberFormatOptions): string =>
     new Intl.NumberFormat(tagFor(locale), opts).format(input),
-  /** "5 minutes ago" / "5 λεπτά πριν". Falls back to English. */
-  relative: (input: Date | number | string, locale: Locale, t: T): string => {
+  /** "5 minutes ago" / "5 λεπτά πριν". Falls back to English.
+   *  `t` is part of the public signature for full i18n-key future-proofing
+   *  but is currently unused since the strings are inlined per locale. */
+  relative: (input: Date | number | string, locale: Locale, _t: T): string => {
     const minutes = Math.max(1, Math.round((Date.now() - new Date(input).getTime()) / 60_000));
     if (minutes < 60) {
       return locale === 'el'

@@ -77,7 +77,7 @@ export const createPoisonAlert = async (req: Request, res: Response) => {
   // 1) Persist the alert ---------------------------------------------------
   const alert = await prisma.poisonAlert.create({
     data: {
-      reporterId: req.user.sub,
+      reporterId: req.user!.sub,
       latitude: input.latitude,
       longitude: input.longitude,
       addressHint: input.addressHint ?? null,
@@ -90,7 +90,7 @@ export const createPoisonAlert = async (req: Request, res: Response) => {
 
   // 2) Reward the reporter ------------------------------------------------
   await prisma.user.update({
-    where: { id: req.user.sub },
+    where: { id: req.user!.sub },
     data: { karmaPoints: { increment: KARMA_REWARD } },
   });
 
@@ -103,7 +103,7 @@ export const createPoisonAlert = async (req: Request, res: Response) => {
       homeLatitude: { gte: box.minLat, lte: box.maxLat },
       homeLongitude: { gte: box.minLng, lte: box.maxLng },
       // Don't re-notify the reporter themselves.
-      NOT: { id: req.user.sub },
+      NOT: { id: req.user!.sub },
     },
     select: {
       id: true,
@@ -202,7 +202,7 @@ export const resendPoisonAlertPush = async (req: Request, res: Response) => {
 
   const [alert, user] = await Promise.all([
     prisma.poisonAlert.findUnique({ where: { id: alertId } }),
-    prisma.user.findUnique({ where: { id: req.user.sub } }),
+    prisma.user.findUnique({ where: { id: req.user!.sub } }),
   ]);
 
   if (!alert) throwHttp(req, 404, 'ALERT_NOT_FOUND');
@@ -210,19 +210,19 @@ export const resendPoisonAlertPush = async (req: Request, res: Response) => {
     throwHttp(req, 400, 'HOME_LOCATION_REQUIRED_FOR_TEST');
   }
   const distanceKm = haversineKm(
-    user.homeLatitude!,
-    user.homeLongitude!,
-    alert.latitude,
-    alert.longitude,
+    user!.homeLatitude!,
+    user!.homeLongitude!,
+    alert!.latitude,
+    alert!.longitude,
   );
-  if (!user.pushToken) throwHttp(req, 400, 'NO_PUSH_TOKEN');
+  if (!user!.pushToken) throwHttp(req, 400, 'NO_PUSH_TOKEN');
 
-  const result = await sendPoisonAlertPush(user.pushToken, {
-    alertId: alert.id,
-    latitude: alert.latitude,
-    longitude: alert.longitude,
-    addressHint: alert.addressHint ?? undefined,
-    description: alert.description ?? undefined,
+  const result = await sendPoisonAlertPush(user!.pushToken!, {
+    alertId: alert!.id,
+    latitude: alert!.latitude,
+    longitude: alert!.longitude,
+    addressHint: alert!.addressHint ?? undefined,
+    description: alert!.description ?? undefined,
     distanceKm,
   });
 

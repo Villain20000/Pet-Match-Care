@@ -17,6 +17,7 @@
  *    on EL devices and English on EN devices — never a fallback key leaked.
  */
 import { create } from 'zustand';
+import type { AxiosInstance } from 'axios';
 import { haptic } from '@/services/haptics';
 import { currentLocale, t as i18nT } from '@/services/i18n';
 
@@ -28,7 +29,8 @@ export interface Toast {
   title: string;
   body?: string;
   cta?: { label: string; onPress: () => void };
-  durationMs: number;
+  /** Per-toast ms; optional at the call site — helpers pick a default. */
+  durationMs?: number;
   createdAt: number;
 }
 
@@ -41,7 +43,7 @@ export interface ToastHostProps {
 
 interface ToastState {
   items: Toast[];
-  push: (input: Omit<Toast, 'id' | 'createdAt'> & { id?: string }) => string;
+  push: (input: Omit<Toast, 'id' | 'createdAt' | 'durationMs'> & { id?: string; durationMs?: number }) => string;
   dismiss: (id: string) => void;
   clear: () => void;
 }
@@ -90,7 +92,7 @@ export const useToastStore = create<ToastState>((set, get) => ({
       if (next.length > DEFAULT_MAX_VISIBLE) next.splice(0, next.length - DEFAULT_MAX_VISIBLE);
       return { items: next };
     });
-    if (durationMs > 0 && Number.isFinite(durationMs)) {
+    if (durationMs !== undefined && durationMs > 0 && Number.isFinite(durationMs)) {
       const handle = setTimeout(() => {
         cache.delete(id);
         // Re-check it hasn't already been dismissed manually.
@@ -217,22 +219,14 @@ const classifyByStatus = (status: number | undefined): ToastVariant => {
  * lookups work. Callers can opt out per-request via
  * `api.get('/foo', { skipAutoToast: true })`.
  */
-export const installAutoToastErrorInterceptor = (api: {
-  interceptors: {
-    response: {
-      use: (
-        onFulfilled: (r: unknown) => unknown,
-        onRejected: (err: unknown) => unknown,
-      ) => void;
-    };
-  };
-}): void => {
+export const installAutoToastErrorInterceptor = (api: AxiosInstance): void => {
   api.interceptors.response.use(
     (_res) => _res,
     (err: unknown) => {
       const ax = err as ThrowableError & {
         config?: { skipAutoToast?: boolean; _retried?: boolean };
       };
+      const responseStatus = ax?.response?.status;
       // Never toast:
       //  – refreshed requests (we already handled the original 401)
       //  – explicit opt-out per-call (`skipAutoToast: true`)
@@ -242,8 +236,8 @@ export const installAutoToastErrorInterceptor = (api: {
         ax?.config?.skipAutoToast ||
         ax?.config?._retried ||
         ax?.response?.data?.error?.code === 'STEP_UP_REQUIRED' ||
-        !ax?.response ||
-        ax.response.status < 500
+        responseStatus === undefined ||
+        responseStatus < 500
       ) {
         return Promise.reject(err);
       }

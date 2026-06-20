@@ -4,14 +4,14 @@ import { prisma } from '@/config/prisma';
 
 const app = buildApp();
 const server = app.listen(env.PORT, () => {
-  // eslint-disable-next-line no-console
+   
   console.log(
     `🐾 Pet-Match & Care API listening on http://localhost:${env.PORT}  [${env.NODE_ENV}]`,
   );
 });
 
 const shutdown = async (signal: string) => {
-  // eslint-disable-next-line no-console
+   
   console.log(`\n${signal} received — shutting down…`);
   server.close(() => {
     void prisma.$disconnect().then(() => process.exit(0));

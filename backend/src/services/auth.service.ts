@@ -24,7 +24,7 @@ import {
 } from '@/services/totp.service';
 import { evaluateBadges } from '@/services/badges.engine';
 import { HttpError } from '@/utils/http';
-import type { AuthProvider, Role } from '@prisma/client';
+import { AuthProvider, type Role } from '@prisma/client';
 
 export interface IssuedTokens {
   accessToken: string;

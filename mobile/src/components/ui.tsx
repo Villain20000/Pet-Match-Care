@@ -1,9 +1,21 @@
-import { View, Text, ViewProps, Pressable, StyleProp, ViewStyle } from 'react-native';
+import {
+  View,
+  Text,
+  ViewProps,
+  Pressable,
+  PressableProps,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 
-interface PillProps extends Pressable['props'] {
+// Re-export so screens can treat `ui.tsx` as the canonical component bucket
+// without having to remember per-component file paths.
+export { PrimaryButton } from '@/components/PrimaryButton';
+
+interface PillProps extends PressableProps {
   variant?: 'sage' | 'terracotta' | 'crimson' | 'cream' | 'charcoal';
   active?: boolean;
   label: string;
@@ -29,7 +41,7 @@ export const Pill = ({
   style,
   onPress,
   ...rest
-}: PillProps) => {
+}: PillProps): React.ReactElement => {
   const palette = variantMap[variant];
   const handlePress = (e: any) => {
     void Haptics.selectionAsync();

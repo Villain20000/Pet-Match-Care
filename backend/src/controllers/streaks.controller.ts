@@ -4,12 +4,12 @@ import { checkIn, currentStreakLength } from '@/services/streaks.service';
 
 export const streakToday = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  const result = await checkIn(req.user.sub);
+  const result = await checkIn(req.user!.sub);
   return res.json({ streak: result.streak, newDay: result.isNewDay });
 };
 
 export const streakStatus = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  const streak = await currentStreakLength(req.user.sub);
+  const streak = await currentStreakLength(req.user!.sub);
   return res.json({ streak });
 };

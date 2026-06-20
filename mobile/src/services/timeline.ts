@@ -7,7 +7,7 @@ export interface TimelineUpdate {
   reportId: string;
   authorId: string;
   status: ReportStatus;
-  message: string;
+  body: string;
   photoUrl: string | null;
   createdAt: string;
 }
@@ -27,7 +27,7 @@ export const useTimeline = (reportId: string) =>
 export const usePostUpdate = (reportId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { status: ReportStatus; message: string; photoUrl?: string }) => {
+    mutationFn: async (vars: { status: ReportStatus; body: string; photoUrl?: string }) => {
       const res = await api.post(`/reports/${reportId}/updates`, vars);
       return res.data;
     },

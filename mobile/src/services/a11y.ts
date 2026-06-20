@@ -2,8 +2,7 @@
  * Accessibility helpers. Holds the dynamic-type scale, a high-contrast
  * colour override, and a color-blind mode toggle (crimson → amber).
  */
-import { useColorScheme } from 'react-native';
-import { AccessibilityInfo, PixelRatio } from 'react-native';
+import { AccessibilityInfo, PixelRatio, useColorScheme as useRNColorScheme } from 'react-native';
 import { useEffect, useState } from 'react';
 
 export type ContrastMode = 'normal' | 'high';
@@ -24,7 +23,7 @@ export const colorBlindShifts: Record<ColorBlindPreset, { crimson: string; sage:
   protanopia:   { crimson: '#D67B00', sage: '#A88CC8' },
   deuteranopia: { crimson: '#E07A00', sage: '#A88C66' },
   tritanopia:   { crimson: '#D05A7A', sage: '#7FB29A' },
-};
+} as const;
 
 export const useDynamicType = () => {
   const [scale, setScale] = useState(1);
@@ -40,7 +39,10 @@ export const useDynamicType = () => {
   return scale;
 };
 
-export const useColorScheme = () => useColorScheme();
+/** Lightweight pass-through to react-native's `useColorScheme` under our own
+ *  name so callers can later add a high-contrast override without churning
+ *  every screen. */
+export const useColorScheme = (): 'light' | 'dark' | null | undefined => useRNColorScheme();
 
 /** Returns an `accessibilityLabel`-ready phrase for any text view. */
 export const tts = {

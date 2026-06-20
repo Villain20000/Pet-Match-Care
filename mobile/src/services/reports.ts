@@ -137,6 +137,10 @@ export const MOCK_SPOTS: PetFriendlySpotDto[] = [
     upvotes: 12,
     downvotes: 0,
     isVerified: true,
+    isFlagged: false,
+    flagReason: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
   {
     id: 'mock-2',
@@ -149,6 +153,10 @@ export const MOCK_SPOTS: PetFriendlySpotDto[] = [
     upvotes: 9,
     downvotes: 1,
     isVerified: true,
+    isFlagged: false,
+    flagReason: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
   },
   {
     id: 'mock-3',
@@ -161,6 +169,10 @@ export const MOCK_SPOTS: PetFriendlySpotDto[] = [
     upvotes: 6,
     downvotes: 0,
     isVerified: true,
+    isFlagged: false,
+    flagReason: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
   },
   {
     id: 'mock-4',
@@ -173,6 +185,10 @@ export const MOCK_SPOTS: PetFriendlySpotDto[] = [
     upvotes: 3,
     downvotes: 0,
     isVerified: true,
+    isFlagged: false,
+    flagReason: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
 ];
 

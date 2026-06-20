@@ -53,11 +53,7 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
 
     if (existing) {
       if (existing.state !== 'DRAFT' && existing.state !== 'REJECTED' && existing.state !== 'CLOSED') {
-        throwHttp(req, 
-          409,
-          'APPLICATION_EXISTS',
-          'Έχεις ήδη ενεργή αίτηση για αυτό το ζώο',
-        );
+        throwHttp(req, 409, 'APPLICATION_EXISTS');
       }
       return tx.adoptionApplication.update({
         where: { id: existing.id },
@@ -74,7 +70,7 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
       data: {
         petId: input.petId,
         applicantId: req.user!.sub,
-        shelterId: pet.shelterId,
+        shelterId: pet!.shelterId,
         motivation: input.motivation,
         homeEnvironment: input.homeEnvironment as any,
         questionnaire: input.questionnaire as any,
@@ -83,7 +79,7 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
     });
   });
 
-  await evaluateBadges(req.user.sub);
+  await evaluateBadges(req.user!.sub);
   return res.status(201).json({ success: true, application: app });
 };
 
@@ -94,8 +90,8 @@ export const transition = async (req: Request, res: Response) => {
 
   const updated = await transitionApplicationWithNotification({
     applicationId: id,
-    actorId: req.user.sub,
-    actorRole: req.user.role,
+    actorId: req.user!.sub,
+    actorRole: req.user!.role,
     to: input.to,
     note: input.note,
     lastKnownUpdatedAt: input.lastKnownUpdatedAt,
@@ -105,7 +101,7 @@ export const transition = async (req: Request, res: Response) => {
 
 export const scheduleHomeCheck = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  if (req.user.role !== 'SHELTER_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
+  if (req.user!.role !== 'SHELTER_ADMIN' && req.user!.role !== 'PLATFORM_ADMIN') {
     throwHttp(req, 403, 'FORBIDDEN');
   }
   const id = z.string().uuid().parse(req.params.id);
@@ -131,7 +127,7 @@ export const scheduleHomeCheck = async (req: Request, res: Response) => {
       },
       audit: {
         create: {
-          actorId: req.user.sub,
+          actorId: req.user!.sub,
           fromState: 'SCREENING',
           toState: 'HOME_CHECK_SCHEDULED',
           note: `Home check on ${input.scheduledAt}`,
@@ -159,7 +155,7 @@ export const getApplication = async (req: Request, res: Response) => {
 export const listMine = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const apps = await prisma.adoptionApplication.findMany({
-    where: { applicantId: req.user.sub },
+    where: { applicantId: req.user!.sub },
     orderBy: { createdAt: 'desc' },
     include: { pet: { select: { id: true, name: true, imageUrl: true } } },
   });

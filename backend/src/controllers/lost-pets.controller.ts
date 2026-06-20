@@ -25,7 +25,7 @@ export const createLostPet = async (req: Request, res: Response) => {
   const input = CreateSchema.parse(req.body);
   const pet = await prisma.lostPet.create({
     data: {
-      ownerId: req.user.sub,
+      ownerId: req.user!.sub,
       name: input.name,
       species: input.species,
       breed: input.breed ?? null,
@@ -39,7 +39,7 @@ export const createLostPet = async (req: Request, res: Response) => {
       reward: input.reward ?? null,
     },
   });
-  await evaluateBadges(req.user.sub);
+  await evaluateBadges(req.user!.sub);
   return res.status(201).json({ success: true, pet });
 };
 
@@ -59,7 +59,7 @@ export const markFound = async (req: Request, res: Response) => {
   const id = z.string().uuid().parse(req.params.id);
   const pet = await prisma.lostPet.findUnique({ where: { id } });
   if (!pet) throwHttp(req, 404, 'NOT_FOUND');
-  if (pet.ownerId !== req.user.sub) throwHttp(req, 403, 'FORBIDDEN');
+  if (pet!.ownerId !== req.user!.sub) throwHttp(req, 403, 'FORBIDDEN');
 
   const updated = await prisma.lostPet.update({
     where: { id },

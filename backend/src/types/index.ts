@@ -1,8 +1,24 @@
 /**
  * Server-side DTOs that the mobile client imports. Mirrors the Prisma
  * shapes we actually serialize.
+ *
+ * Also re-exports the runtime-valuable enum mirrors from `./enums` so
+ * services can pull both runtime constants and types from a single
+ * `@/types` import — no need to fall through to `@prisma/client` for
+ * one and the local mirror for the other.
+ *
+ * NOTE: `export * from './enums'` propagates both the runtime consts and
+ * the type aliases defined there, since `enums.ts` declares them on the
+ * SAME identifier (e.g. `export const Role = ...` + `export type Role =
+ * ...`). That makes the type-side accessible to downstream consumers
+ * without an extra `export type` line here. The Prisma-derived types
+ * below are imported locally-only for the DTO interface declarations
+ * — we rely on them purely for the *structural* compatibility check
+ * (they should match `enums.ts` exactly).
  */
 import type { AdoptionStatus, BadgeRarity, Role } from '@prisma/client';
+
+export * from './enums';
 
 export interface UserDto {
   id: string;

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { ReportCondition, ReportStatus } from '@prisma/client';
+import { Prisma, ReportCondition, ReportStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
 import { throwHttp } from "@/utils/http";
 import { findClosestMunicipality } from '@/services/municipality.service';
@@ -23,19 +23,9 @@ const NearbyQuerySchema = z.object({
   radius: z.coerce.number().positive().max(50).default(5), // km
 });
 
-const serializeReport = (r: {
-  id: string;
-  reporterId: string;
-  imageUrl: string;
-  condition: ReportCondition;
-  description: string | null;
-  latitude: number;
-  longitude: number;
-  addressHint: string | null;
-  status: ReportStatus;
-  assignedMunicipality: string;
-  createdAt: Date;
-}) => ({
+// Accept the full Prisma row (which includes nullable resolvedAt / expiresAt
+// that aren't in the wire format) — we destructure the fields we expose.
+const serializeReport = (r: Prisma.StrayReportGetPayload<{}>) => ({
   id: r.id,
   reporterId: r.reporterId,
   imageUrl: r.imageUrl,
@@ -59,7 +49,7 @@ export const createReport = async (req: Request, res: Response) => {
 
   const report = await prisma.strayReport.create({
     data: {
-      reporterId: req.user.sub,
+      reporterId: req.user!.sub,
       imageUrl: input.imageUrl,
       condition: input.condition,
       description: input.description ?? null,
@@ -73,7 +63,7 @@ export const createReport = async (req: Request, res: Response) => {
   });
 
   await prisma.user.update({
-    where: { id: req.user.sub },
+    where: { id: req.user!.sub },
     data: { karmaPoints: { increment: KARMA_PER_REPORT } },
   });
 
@@ -119,7 +109,7 @@ export const getReportById = async (req: Request, res: Response) => {
   const id = z.string().uuid().parse(req.params.id);
   const report = await prisma.strayReport.findUnique({ where: { id } });
   if (!report) throwHttp(req, 404, 'NOT_FOUND');
-  return res.json({ report: serializeReport(report) });
+  return res.json({ report: serializeReport(report!) });
 };
 
 // Worker-only: mark a report IN_PROGRESS or RESOLVED.

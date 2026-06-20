@@ -10,7 +10,7 @@ export const listAll = async (_req: Request, res: Response) => {
 
 export const listMine = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  const userId = req.user.sub;
+  const userId = req.user!.sub;
 
   // Re-evaluate before responding so recent activity unlocks badges
   // without requiring the client to ping /re-evaluate.

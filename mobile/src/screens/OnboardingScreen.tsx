@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors, Radii, Shadows, Spacing } from '@/theme';
+import { Colors, Shadows, Spacing } from '@/theme';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { haptic } from '@/services/haptics';
 import { useT } from '@/services/i18n';
@@ -45,7 +45,9 @@ export const OnboardingScreen = ({ navigation }: any) => {
   const translate = useSharedValue(0);
   useEffect(() => {
     translate.value = withTiming(-step * width, { duration: 300 });
-  }, [step, translate, width]);
+    // width is a module-level constant from Dimensions — safe to omit
+     
+  }, [step, translate]);
 
   const next = async (done = false) => {
     haptic.select();

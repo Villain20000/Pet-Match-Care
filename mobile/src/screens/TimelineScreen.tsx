@@ -3,7 +3,6 @@
  * Municipal workers / shelter admins can post new updates that are
  * persisted and surfaced to the original reporter.
  */
-import { useEffect } from 'react';
 import { View, Text, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonLine } from '@/components/Skeleton';
@@ -114,7 +113,7 @@ export const TimelineScreen = ({ route }: any) => {
                 <Text style={{ fontWeight: '700', color: STATUS_COLOR[u.status] }}>
                   {t(STATUS_TRANSLATION_KEY[u.status] ?? 'timeline.fallbackStatus')}
                 </Text>
-                <Text style={{ marginTop: 4, color: Colors.charcoal }}>{u.message}</Text>
+                <Text style={{ marginTop: 4, color: Colors.charcoal }}>{u.body}</Text>
                 {u.photoUrl ? (
                   <Image
                     source={{ uri: u.photoUrl }}

@@ -422,7 +422,7 @@ export const el = {
     ctaDismiss: 'Απόκρυψη',
     ctaRetry: 'Ξαναδοκιμή',
   },
-} as const;
+};
 
 // Helpers ------------------------------------------------------------------
 function rankLabel(pos: number): string {

@@ -33,9 +33,11 @@
     "expo-image-picker": "~15.0.7",
     "expo-linear-gradient": "~13.0.2",
     "expo-local-authentication": "~16.0.5",
+    "expo-localization": "^56.0.6",
     "expo-location": "~17.0.1",
     "expo-notifications": "~0.28.19",
     "expo-secure-store": "~13.0.2",
+    "expo-splash-screen": "^0.27.7",
     "expo-status-bar": "~1.12.1",
     "expo-web-browser": "~13.0.3",
     "nativewind": "^4.1.23",
@@ -57,9 +59,10 @@
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
     "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.4.2",
     "react-test-renderer": "^18.2.0",
     "tsx": "^4.22.4",
-    "typescript": "~5.3.3"
+    "typescript": "~5.4.5"
   }
 }

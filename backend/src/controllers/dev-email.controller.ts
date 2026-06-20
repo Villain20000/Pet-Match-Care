@@ -10,15 +10,17 @@ import { getPreviewInbox, clearPreviewInbox } from '@/services/email.service';
 import { wireError } from '@/middlewares/error';
 
 const guarded = (handler: (req: Request, res: Response) => void) =>
-  (req: Request, res: Response) => {
+  (req: Request, res: Response): void => {
     if (env.NODE_ENV === 'production' || !env.DEV_EMAIL_PREVIEW_TOKEN) {
       const { status, body } = wireError(req, 404, 'NOT_FOUND');
-      return res.status(status).json(body);
+      res.status(status).json(body);
+      return;
     }
     const token = req.headers['x-dev-token'];
     if (token !== env.DEV_EMAIL_PREVIEW_TOKEN) {
       const { status, body } = wireError(req, 401, 'BAD_DEV_TOKEN');
-      return res.status(status).json(body);
+      res.status(status).json(body);
+      return;
     }
     handler(req, res);
   };

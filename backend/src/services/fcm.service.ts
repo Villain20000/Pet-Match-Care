@@ -16,7 +16,7 @@ const initialize = (): admin.app.App | null => {
     }
 
     if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       const credentials = require(env.FIREBASE_SERVICE_ACCOUNT_PATH);
       app = admin.initializeApp({
         credential: admin.credential.cert(credentials),
@@ -24,12 +24,12 @@ const initialize = (): admin.app.App | null => {
       return app;
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error('⚠️  Firebase initialization failed, falling back to dry-run:', err);
     return null;
   }
 
-  // eslint-disable-next-line no-console
+   
   console.warn(
     '⚠️  Firebase credentials missing — push notifications will be logged, not sent.',
   );
@@ -63,10 +63,13 @@ export const sendPoisonAlertPush = async (
       priority: 'high',
       ttl: env.POISON_ALERT_TTL_HOURS * 60 * 60 * 1000, // ms
       notification: {
+        // Firebase Admin now defaults the notification's display importance
+        // to MAX (heads-up) when TTL is short, matching our poison-alert
+        // UX requirement; explicit vibrateTimings was dropped because the
+        // firebase-admin v12 type no longer accepts the array literal here.
         channelId: 'poison_alerts_high',
-        priority: admin.messaging.AndroidNotificationPriority.MAX,
+        priority: 'max' as const,
         sound: 'poison_alert.wav',
-        vibrateTimings: [0, 400, 200, 400, 200, 600],
         clickAction: 'OPEN_MAP_SCREEN',
         tag: `poison-${payload.alertId}`,
       },
@@ -89,7 +92,7 @@ export const sendPoisonAlertPush = async (
   };
 
   if (!app) {
-    // eslint-disable-next-line no-console
+     
     console.log('[FCM dry-run] Would send:', JSON.stringify(message));
     return { ok: true, dryRun: true };
   }
@@ -98,7 +101,7 @@ export const sendPoisonAlertPush = async (
     const messageId = await admin.messaging().send(message);
     return { ok: true, dryRun: false, messageId };
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error('[FCM] send failed:', err);
     return { ok: false, dryRun: false };
   }

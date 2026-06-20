@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '@/config/prisma';
 import { signAccessToken } from '@/utils/jwt';
+import type { IssuedTokens } from '@/services/auth.service';
 import {
   consumePasswordReset,
   consumeVerificationToken,
@@ -63,7 +64,7 @@ const clientMeta = (req: Request) => ({
   ip: (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? req.ip,
 });
 
-const tokensResponse = (t: Awaited<ReturnType<typeof issueTokensForUser>>) => ({
+const tokensResponse = (t: IssuedTokens) => ({
   accessToken: t.accessToken,
   accessExpiresAt: t.accessExpiresAt.toISOString(),
   refreshToken: t.refreshToken,
@@ -101,7 +102,7 @@ export const register = async (req: Request, res: Response) => {
     { ...clientMeta(req), locale: effective } as any,
   );
   return res.status(201).json({
-    ...tokensResponse(tokens),
+    ...tokensResponse(tokens!),
     user: sanitizeUser({ ...user, locale: effective }),
   });
 };
@@ -117,7 +118,7 @@ export const login = async (req: Request, res: Response) => {
     { ...clientMeta(req), locale: user.locale } as any,
   );
   return res.json({
-    ...tokensResponse(tokens),
+    ...tokensResponse(tokens!),
     user: sanitizeUser(user),
     requires2fa: user.totpEnabled,
   });
@@ -131,7 +132,7 @@ export const refresh = async (req: Request, res: Response) => {
   if (!rotated) {
     throwHttp(req, 401, 'REFRESH_REJECTED');
   }
-  return res.json(tokensResponse(rotated));
+  return res.json(tokensResponse(rotated!));
 };
 
 export const logout = async (req: Request, res: Response) => {
@@ -143,13 +144,13 @@ export const logout = async (req: Request, res: Response) => {
 
 export const logoutEverywhere = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  await revokeAllForUser(req.user.sub);
+  await revokeAllForUser(req.user!.sub);
   return res.json({ success: true });
 };
 
 export const me = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user.sub } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.sub } });
   return res.json({ user: sanitizeUser(user) });
 };
 
@@ -164,14 +165,14 @@ export const updateMe = async (req: Request, res: Response) => {
   if (typeof input.homeLatitude === 'number') data.homeLatitude = input.homeLatitude;
   if (typeof input.homeLongitude === 'number') data.homeLongitude = input.homeLongitude;
 
-  const updated = await prisma.user.update({ where: { id: req.user.sub }, data });
+  const updated = await prisma.user.update({ where: { id: req.user!.sub }, data });
   return res.json({ user: sanitizeUser(updated) });
 };
 
 export const updatePushToken = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const { pushToken } = UpdatePushTokenSchema.parse(req.body);
-  await prisma.user.update({ where: { id: req.user.sub }, data: { pushToken } });
+  await prisma.user.update({ where: { id: req.user!.sub }, data: { pushToken } });
   return res.json({ success: true });
 };
 
@@ -185,7 +186,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 export const resendVerification = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user.sub } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.sub } });
   await sendVerificationEmail(user.id, user.email, userLocale(user));
   return res.json({ success: true });
 };
@@ -206,14 +207,14 @@ export const stepUp = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const { code } = StepUpSchema.parse(req.body);
 
-  await verifyTwoFactorCode(req.user.sub, code);
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user.sub } });
+  await verifyTwoFactorCode(req.user!.sub, code);
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.sub } });
   const stepUpTtl = env.JWT_STEP_UP_TTL;
   const expiresAtSeconds = Math.floor(Date.now() / 1000) + parseTtlSeconds(stepUpTtl);
   const { token: accessToken, jti, expiresAt } = signAccessToken(
     {
       sub: user.id, email: user.email, role: user.role,
-      amr: ['totp', 'pwd', ...(Array.isArray(req.user.amr) ? req.user.amr.filter((m) => m !== 'totp') : [])],
+      amr: ['totp', 'pwd', ...(Array.isArray(req.user!.amr) ? req.user!.amr.filter((m) => m !== 'totp') : [])],
       stepUpExpiresAt: expiresAtSeconds,
       locale: user.locale as 'el' | 'en',
     } as any,
@@ -226,7 +227,7 @@ export const stepUp = async (req: Request, res: Response) => {
 export const listSessions = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const sessions = await prisma.userSession.findMany({
-    where: { userId: req.user.sub, loggedOutAt: null },
+    where: { userId: req.user!.sub, loggedOutAt: null },
     orderBy: { lastActiveAt: 'desc' },
     take: 20,
   });

@@ -18,7 +18,6 @@ export const VerifyEmailScreen = ({ initialToken }: Props) => {
   const logout = useAuthStore((s) => s.logout);
   const t = useT();
 
-  const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,11 +134,10 @@ export const VerifyEmailScreen = ({ initialToken }: Props) => {
           <Pressable
             onPress={async () => {
               haptic.tap();
-              setSending(true);
               try {
                 await sendVerification();
-              } finally {
-                setSending(false);
+              } catch (err) {
+                setError(String(err));
               }
             }}
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}

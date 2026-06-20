@@ -18,7 +18,7 @@ import { adoptionApi } from '@/services/reports';
 import { useAuthStore } from '@/services/auth';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useT } from '@/services/i18n';
-import type { PetForAdoptionDto, Species } from '@/types';
+import type { PetForAdoptionDto } from '@/types';
 
 const MOCK_PETS: PetForAdoptionDto[] = [
   {

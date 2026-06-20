@@ -84,7 +84,7 @@ export const errorHandler = (
   err: unknown,
   req: Request,
   res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _next: NextFunction,
 ) => {
   if (err instanceof ZodError) {
@@ -97,7 +97,7 @@ export const errorHandler = (
     return res.status(status).json(body);
   }
 
-  // eslint-disable-next-line no-console
+   
   console.error('[unhandled]', err);
 
   const { status, body } = wireError(req, 500, 'INTERNAL_SERVER_ERROR');

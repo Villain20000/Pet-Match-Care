@@ -88,6 +88,6 @@ export const el = {
       CLOSED: 'Έκλεισε',
     },
   },
-} as const;
+};
 
 export type ServerPane = typeof el;

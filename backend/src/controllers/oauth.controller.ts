@@ -49,7 +49,7 @@ export const callbackGoogle = async (req: Request, res: Response) => {
 
   const backendUrl = `${req.protocol}://${req.get('host')}`;
   const redirectUri = `${backendUrl}/api/auth/oauth/google/callback`;
-  const profile = await exchangeGoogleCode(code, redirectUri);
+  const profile = await exchangeGoogleCode(code!, redirectUri);
   const user = await findOrCreateUserForSso({
     provider: AuthProvider.GOOGLE,
     subject: profile.sub,

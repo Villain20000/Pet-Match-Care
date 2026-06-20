@@ -1,11 +1,10 @@
 import { View, Text, Pressable } from 'react-native';
-import { useT, useI18nStore } from '@/services/i18n';
+import { useI18nStore } from '@/services/i18n';
 import { Colors, Radii } from '@/theme';
 import { haptic } from '@/services/haptics';
 import type { Locale } from '@/services/i18n';
 
 export const LanguageSwitcher = () => {
-  const t = useT();
   const locale = useI18nStore((s) => s.locale);
   const setLocale = useI18nStore((s) => s.setLocale);
 

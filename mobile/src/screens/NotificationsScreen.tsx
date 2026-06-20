@@ -2,7 +2,6 @@
  * NotificationsScreen — inbox-style list, grouped by day, mark-all-read
  * with haptics. Tap to navigate for known kinds (e.g. STRAY_REPORT_UPDATE).
  */
-import { useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInbox, useMarkAllRead, useMarkRead } from '@/services/notifications';
@@ -85,7 +84,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
           </Text>
         ) : (
           <View style={{ gap: 8 }}>
-            {data.items.map((n) => (
+            {data.items.map((n: { id: string; kind: string; title: string; body: string; data: Record<string, unknown>; readAt: string | null; createdAt: string }) => (
               <Pressable
                 key={n.id}
                 onPress={() => {
