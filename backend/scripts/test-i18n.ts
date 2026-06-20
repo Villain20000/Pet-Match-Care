@@ -88,6 +88,33 @@ const buildApp = () => {
     throw new HttpError(404, 'STRAY_REPORT_NOT_FOUND');
   });
 
+  // ---- TOTP / 2FA (added when auth.service.ts + oauth.service.ts were
+  //      converted to code-only HttpError throws). Each new code mirrors
+  //      the bilingual catalog under el.ts/en.ts.
+  app.get('/totp-already-enabled', (_req: Request) => {
+    throw new HttpError(409, 'TOTP_ALREADY_ENABLED');
+  });
+  app.get('/totp-enrollment-not-started', (_req: Request) => {
+    throw new HttpError(400, 'TOTP_ENROLLMENT_NOT_STARTED');
+  });
+  app.get('/totp-not-enabled', (_req: Request) => {
+    throw new HttpError(400, 'TOTP_NOT_ENABLED');
+  });
+  app.get('/invalid-2fa-code', (_req: Request) => {
+    throw new HttpError(401, 'INVALID_2FA_CODE');
+  });
+
+  // ---- SSO / OAuth ----
+  app.get('/sso-email-not-verified', (_req: Request) => {
+    throw new HttpError(403, 'SSO_EMAIL_NOT_VERIFIED');
+  });
+  app.get('/sso-token-exchange-failed', (_req: Request) => {
+    throw new HttpError(502, 'SSO_TOKEN_EXCHANGE_FAILED');
+  });
+  app.get('/sso-userinfo-failed', (_req: Request) => {
+    throw new HttpError(502, 'SSO_USERINFO_FAILED');
+  });
+
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
@@ -234,6 +261,100 @@ const server = app.listen(0, async () => {
         assert('code NOT_FOUND', b.error === 'NOT_FOUND', b.error, 'NOT_FOUND');
         assert('English message', b.message === 'Resource not found', b.message, 'Resource not found');
         assert('Greek message cached', b.messages?.el === 'Ο πόρος δεν βρέθηκε', b.messages?.el, 'Ο πόρος δεν βρέθηκε');
+      },
+    },
+
+    // ---- TOTP / 2FA assertions added after the bilingual-envelope refactor ----
+    {
+      name: 'TOTP_ALREADY_ENABLED returns 409 with both messages',
+      path: '/totp-already-enabled',
+      headers: { 'Accept-Language': 'el' },
+      assert: (s, b) => {
+        assert('status 409', s === 409, s, 409);
+        assert('code TOTP_ALREADY_ENABLED', b.error === 'TOTP_ALREADY_ENABLED', b.error, 'TOTP_ALREADY_ENABLED');
+        assert('Greek message', b.message === 'Ο λογαριασμός έχει ήδη 2FA ενεργό', b.message, 'Ο λογαριασμός έχει ήδη 2FA ενεργό');
+        assert('English mirror', b.messages?.en === 'Two-factor authentication is already enabled', b.messages?.en, 'Two-factor authentication is already enabled');
+      },
+    },
+    {
+      name: 'TOTP_ALREADY_ENABLED resolved to English via Accept-Language',
+      path: '/totp-already-enabled',
+      headers: { 'Accept-Language': 'en' },
+      assert: (s, b) => {
+        assert('status 409', s === 409, s, 409);
+        assert('code TOTP_ALREADY_ENABLED', b.error === 'TOTP_ALREADY_ENABLED', b.error, 'TOTP_ALREADY_ENABLED');
+        assert('message is English', b.message === 'Two-factor authentication is already enabled', b.message, 'Two-factor authentication is already enabled');
+      },
+    },
+    {
+      // Locks the user-locale path: even when the network says EL, an
+      // authenticated English user wins. Same code as the existing
+      // UNAUTHORIZED x-test-user-locale case.
+      name: 'TOTP_ALREADY_ENABLED user.locale=en wins over Accept-Language:el',
+      path: '/totp-already-enabled',
+      headers: { 'Accept-Language': 'el', 'x-test-user-locale': 'en' },
+      assert: (_s, b) => {
+        assert('message follows user.locale (en)', b.message === 'Two-factor authentication is already enabled', b.message, 'Two-factor authentication is already enabled');
+      },
+    },
+    {
+      name: 'TOTP_ENROLLMENT_NOT_STARTED returns 400',
+      path: '/totp-enrollment-not-started',
+      headers: { 'Accept-Language': 'el' },
+      assert: (s, b) => {
+        assert('status 400', s === 400, s, 400);
+        assert('Greek message', b.message === 'Δεν έχει ξεκινήσει η εγγραφή 2FA', b.message, 'Δεν έχει ξεκινήσει η εγγραφή 2FA');
+        assert('English mirror', b.messages?.en === 'Two-factor setup has not started', b.messages?.en, 'Two-factor setup has not started');
+      },
+    },
+    {
+      name: 'TOTP_NOT_ENABLED English via Accept-Language',
+      path: '/totp-not-enabled',
+      headers: { 'Accept-Language': 'en' },
+      assert: (s, b) => {
+        assert('status 400', s === 400, s, 400);
+        assert('code TOTP_NOT_ENABLED', b.error === 'TOTP_NOT_ENABLED', b.error, 'TOTP_NOT_ENABLED');
+        assert('English message', b.message === 'Two-factor authentication is not enabled on this account', b.message, 'Two-factor authentication is not enabled on this account');
+      },
+    },
+    {
+      name: 'INVALID_2FA_CODE returns 401',
+      path: '/invalid-2fa-code',
+      headers: { 'Accept-Language': 'el' },
+      assert: (s, b) => {
+        assert('status 401', s === 401, s, 401);
+        assert('Greek message', b.message === 'Λάθος κωδικός 2FA ή κωδικός ανάκτησης', b.message, 'Λάθος κωδικός 2FA ή κωδικός ανάκτησης');
+        assert('English mirror', b.messages?.en === 'Wrong 2FA code or recovery code', b.messages?.en, 'Wrong 2FA code or recovery code');
+      },
+    },
+    {
+      name: 'SSO_EMAIL_NOT_VERIFIED returns 403',
+      path: '/sso-email-not-verified',
+      headers: { 'Accept-Language': 'el' },
+      assert: (s, b) => {
+        assert('status 403', s === 403, s, 403);
+        assert('Greek message', b.message === 'Ο πάροχος SSO δεν επαλήθευσε το email', b.message, 'Ο πάροχος SSO δεν επαλήθευσε το email');
+        assert('English mirror', b.messages?.en === 'The SSO provider did not verify the email', b.messages?.en, 'The SSO provider did not verify the email');
+      },
+    },
+    {
+      name: 'SSO_TOKEN_EXCHANGE_FAILED returns 502',
+      path: '/sso-token-exchange-failed',
+      headers: { 'Accept-Language': 'en' },
+      assert: (s, b) => {
+        assert('status 502', s === 502, s, 502);
+        assert('code SSO_TOKEN_EXCHANGE_FAILED', b.error === 'SSO_TOKEN_EXCHANGE_FAILED', b.error, 'SSO_TOKEN_EXCHANGE_FAILED');
+        assert('English message', b.message === 'Failed to exchange the code with the SSO provider', b.message, 'Failed to exchange the code with the SSO provider');
+      },
+    },
+    {
+      name: 'SSO_USERINFO_FAILED returns 502 (Greek flip)',
+      path: '/sso-userinfo-failed',
+      headers: { 'Accept-Language': 'el' },
+      assert: (s, b) => {
+        assert('status 502', s === 502, s, 502);
+        assert('Greek message', b.message === 'Αποτυχία λήψης στοιχείων από τον πάροχο SSO', b.message, 'Αποτυχία λήψης στοιχείων από τον πάροχο SSO');
+        assert('English mirror', b.messages?.en === 'Failed to fetch the user profile from the SSO provider', b.messages?.en, 'Failed to fetch the user profile from the SSO provider');
       },
     },
   ];

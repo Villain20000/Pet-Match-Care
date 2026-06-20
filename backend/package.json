@@ -16,6 +16,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "test:email": "tsx scripts/test-email.ts",
+    "test:i18n": "tsx scripts/test-i18n.ts",
     "test:catalog": "tsx scripts/test-catalog-parity.ts",
     "setup:hooks": "node scripts/install-hooks.js",
     "prepare": "node scripts/install-hooks.js"

@@ -2,6 +2,11 @@
  * Centralized auth service. Owns the refresh-token rotation logic and the
  * 2FA / step-up / re-auth envelope. Every controller that mints tokens
  * goes through here, so it's the single audit point.
+ *
+ * Error policy: services never touch `req` — they throw code-only
+ * `HttpError` instances and let the i18n middleware localize. New
+ * `TOTP_*` / `SSO_*` keys live in `locales/{el,en}.ts` so the mobile
+ * client renders translated toasts without an extra round-trip.
  */
 import { prisma } from '@/config/prisma';
 import { env } from '@/config/env';
@@ -18,6 +23,7 @@ import {
   verifyTotp,
 } from '@/services/totp.service';
 import { evaluateBadges } from '@/services/badges.engine';
+import { HttpError } from '@/utils/http';
 import type { AuthProvider, Role } from '@prisma/client';
 
 export interface IssuedTokens {
@@ -120,9 +126,9 @@ export const revokeAllForUser = async (userId: string) => {
   });
 };
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // Auth flow
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 export const registerLocal = async (args: {
   email: string;
   password: string;
@@ -131,10 +137,15 @@ export const registerLocal = async (args: {
   homeLng?: number;
   locale?: 'el' | 'en';
 }) => {
-  if (args.password.length < 8) throw new Error('Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες');
+  // Defence in depth — Zod schema in `auth.controller.ts` already enforces
+  // .min(8), but if a programmatic caller reaches this layer (e.g. seed
+  // scripts), surface a localized 400 rather than letting bcrypt throw.
+  if (!args.password || args.password.length < 8) {
+    throw new HttpError(400, 'VALIDATION_ERROR');
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: args.email.toLowerCase() } });
-  if (existing) throw new Error('Το email χρησιμοποιείται ήδη');
+  if (existing) throw new HttpError(409, 'EMAIL_TAKEN');
 
   const user = await prisma.user.create({
     data: {
@@ -156,17 +167,17 @@ export const registerLocal = async (args: {
 
 export const loginLocal = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (!user || !user.passwordHash) throw new Error('Λάθος email ή κωδικός');
+  if (!user || !user.passwordHash) throw new HttpError(401, 'INVALID_CREDENTIALS');
   const ok = await verifyPassword(password, user.passwordHash);
-  if (!ok) throw new Error('Λάθος email ή κωδικός');
+  if (!ok) throw new HttpError(401, 'INVALID_CREDENTIALS');
   await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } });
   await evaluateBadges(user.id);
   return user;
 };
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // Email verification
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 export const sendVerificationEmail = async (userId: string, email: string, locale: 'el' | 'en' = 'el') => {
   const token = signVerificationToken(userId, email);
   const tpl = templates.verifyEmail(token, locale);
@@ -178,7 +189,7 @@ export const sendVerificationEmail = async (userId: string, email: string, local
 
 export const consumeVerificationToken = async (token: string) => {
   const payload = decodeTokenForInspection(token);
-  if (!payload || payload.typ !== 'email-verify') throw new Error('Μη έγκυρο ή ληγμένο link');
+  if (!payload || payload.typ !== 'email-verify') throw new HttpError(401, 'INVALID_TOKEN');
   await prisma.user.update({
     where: { id: payload.sub! },
     data: { emailVerifiedAt: new Date() },
@@ -186,9 +197,9 @@ export const consumeVerificationToken = async (token: string) => {
   return payload.sub!;
 };
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // Password reset
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 export const sendPasswordReset = async (email: string, locale: 'el' | 'en' = 'el') => {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   if (!user) return; // Silent — avoid account enumeration.
@@ -202,7 +213,7 @@ export const sendPasswordReset = async (email: string, locale: 'el' | 'en' = 'el
 
 export const consumePasswordReset = async (token: string, newPassword: string) => {
   const payload = decodeTokenForInspection(token);
-  if (!payload || payload.typ !== 'password-reset') throw new Error('Μη έγκυρο ή ληγμένο link');
+  if (!payload || payload.typ !== 'password-reset') throw new HttpError(401, 'INVALID_TOKEN');
   await prisma.user.update({
     where: { id: payload.sub! },
     data: { passwordHash: await hashPassword(newPassword) },
@@ -210,12 +221,12 @@ export const consumePasswordReset = async (token: string, newPassword: string) =
   await revokeAllForUser(payload.sub!);
 };
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // TOTP / 2FA
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 export const beginTotpEnrollment = async (userId: string) => {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  if (user.totpEnabled) throw new Error('Ο λογαριασμός έχει ήδη 2FA ενεργό');
+  if (user.totpEnabled) throw new HttpError(409, 'TOTP_ALREADY_ENABLED');
   const secret = generateSecret();
   await prisma.user.update({ where: { id: userId }, data: { totpSecretEnc: encryptSecret(secret) } });
   return { secret, otpauthUri: buildOtpAuthUri(secret, user.email) };
@@ -223,10 +234,10 @@ export const beginTotpEnrollment = async (userId: string) => {
 
 export const confirmTotpEnrollment = async (userId: string, code: string): Promise<{ recoveryCodes: string[] }> => {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  if (!user.totpSecretEnc) throw new Error('Δεν έχει ξεκινήσει η εγραφή 2FA');
-  if (user.totpEnabled) throw new Error('Ο λογαριασμός έχει ήδη 2FA ενεργό');
+  if (!user.totpSecretEnc) throw new HttpError(400, 'TOTP_ENROLLMENT_NOT_STARTED');
+  if (user.totpEnabled) throw new HttpError(409, 'TOTP_ALREADY_ENABLED');
   const secret = decryptSecret(user.totpSecretEnc);
-  if (!verifyTotp(secret, code)) throw new Error('Λάθος κωδικός 2FA');
+  if (!verifyTotp(secret, code)) throw new HttpError(401, 'INVALID_2FA_CODE');
   await prisma.user.update({ where: { id: userId }, data: { totpEnabled: true } });
   const codes: string[] = [];
   await prisma.recoveryCode.deleteMany({ where: { userId } });
@@ -240,8 +251,8 @@ export const confirmTotpEnrollment = async (userId: string, code: string): Promi
 
 export const verifyTwoFactorCode = async (userId: string, codeOrRecovery: string) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new Error('Ο χρήστης δεν βρέθηκε');
-  if (!user.totpEnabled) throw new Error('Το 2FA δεν είναι ενεργό');
+  if (!user) throw new HttpError(404, 'NOT_FOUND');
+  if (!user.totpEnabled) throw new HttpError(400, 'TOTP_NOT_ENABLED');
   const secret = decryptSecret(user.totpSecretEnc!);
   if (verifyTotp(secret, codeOrRecovery)) return { method: 'totp' as const };
   const candidates = await prisma.recoveryCode.findMany({
@@ -254,7 +265,7 @@ export const verifyTwoFactorCode = async (userId: string, codeOrRecovery: string
       return { method: 'recovery' as const };
     }
   }
-  throw new Error('Λάθος κωδικός 2FA ή recovery');
+  throw new HttpError(401, 'INVALID_2FA_CODE');
 };
 
 export const disableTotp = async (userId: string, code: string) => {
@@ -263,9 +274,9 @@ export const disableTotp = async (userId: string, code: string) => {
   await prisma.recoveryCode.deleteMany({ where: { userId } });
 };
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // SSO
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 export const findOrCreateUserForSso = async (args: {
   provider: AuthProvider;
   subject: string;
@@ -285,7 +296,7 @@ export const findOrCreateUserForSso = async (args: {
     return prisma.user.findUniqueOrThrow({ where: { id: existingIdentity.userId } });
   }
   if (!args.emailVerified) {
-    throw new Error('Ο πάροχος SSO δεν επαλήθευσε το email');
+    throw new HttpError(403, 'SSO_EMAIL_NOT_VERIFIED');
   }
   const newUser = await prisma.user.create({
     data: {

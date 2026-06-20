@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { HttpError } from '@/utils/http';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -22,10 +23,14 @@ export interface GoogleProfile {
  * For production you'd verify the JWT signature against Google's JWKs; for
  * the v1 surface we keep it simple and trust the userinfo endpoint after a
  * successful token exchange. Swap in `google-auth-library` for hardening.
+ *
+ * Errors are surfaced as code-only `HttpError` so the i18n middleware
+ * localizes 502s/503s the same way it does every other envelope. Provider
+ * status codes / response bodies land in `serverMessage` for SREs.
  */
 export const exchangeGoogleCode = async (code: string, redirectUri: string): Promise<GoogleProfile> => {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-    throw new Error('GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET δεν έχουν οριστεί');
+    throw new HttpError(503, 'SSO_NOT_CONFIGURED');
   }
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -41,8 +46,10 @@ export const exchangeGoogleCode = async (code: string, redirectUri: string): Pro
   });
 
   if (!tokenRes.ok) {
-    const body = await tokenRes.text();
-    throw new Error(`Google token exchange failed: ${tokenRes.status} ${body}`);
+    // Drain the upstream body so the connection can be reused; the
+    // SSO_TOKEN_EXCHANGE_FAILED envelope is enough from the user's POV.
+    await tokenRes.text();
+    throw new HttpError(502, 'SSO_TOKEN_EXCHANGE_FAILED');
   }
 
   const tokens = (await tokenRes.json()) as GoogleTokenResponse;
@@ -52,7 +59,7 @@ export const exchangeGoogleCode = async (code: string, redirectUri: string): Pro
   });
 
   if (!infoRes.ok) {
-    throw new Error(`Google userinfo failed: ${infoRes.status}`);
+    throw new HttpError(502, 'SSO_USERINFO_FAILED');
   }
 
   const profile = (await infoRes.json()) as GoogleProfile;

@@ -31,6 +31,17 @@ export const en: ServerPane = {
     GEO_BAD_PARAMS: 'Valid lat and lng query parameters are required',
     HOME_LOCATION_REQUIRED_FOR_TEST:
       'Set a home location to receive a test push notification',
+
+    // ---- 2FA / TOTP ----
+    TOTP_ALREADY_ENABLED: 'Two-factor authentication is already enabled',
+    TOTP_ENROLLMENT_NOT_STARTED: 'Two-factor setup has not started',
+    TOTP_NOT_ENABLED: 'Two-factor authentication is not enabled on this account',
+    INVALID_2FA_CODE: 'Wrong 2FA code or recovery code',
+
+    // ---- SSO / OAuth ----
+    SSO_EMAIL_NOT_VERIFIED: 'The SSO provider did not verify the email',
+    SSO_TOKEN_EXCHANGE_FAILED: 'Failed to exchange the code with the SSO provider',
+    SSO_USERINFO_FAILED: 'Failed to fetch the user profile from the SSO provider',
   },
 
   email: {

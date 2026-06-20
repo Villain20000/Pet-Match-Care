@@ -35,6 +35,17 @@ export const el = {
     GEO_BAD_PARAMS: 'Απαιτούνται έγκυρα lat και lng query params',
     HOME_LOCATION_REQUIRED_FOR_TEST:
       'Ορίστε την τοποθεσία του σπιτιού σας για να λάβετε δοκιμαστική ειδοποίηση',
+
+    // ---- 2FA / TOTP ----
+    TOTP_ALREADY_ENABLED: 'Ο λογαριασμός έχει ήδη 2FA ενεργό',
+    TOTP_ENROLLMENT_NOT_STARTED: 'Δεν έχει ξεκινήσει η εγγραφή 2FA',
+    TOTP_NOT_ENABLED: 'Το 2FA δεν είναι ενεργό σε αυτόν τον λογαριασμό',
+    INVALID_2FA_CODE: 'Λάθος κωδικός 2FA ή κωδικός ανάκτησης',
+
+    // ---- SSO / OAuth ----
+    SSO_EMAIL_NOT_VERIFIED: 'Ο πάροχος SSO δεν επαλήθευσε το email',
+    SSO_TOKEN_EXCHANGE_FAILED: 'Δεν μπόρεσε η ανταλλαγή με τον πάροχο SSO',
+    SSO_USERINFO_FAILED: 'Αποτυχία λήψης στοιχείων από τον πάροχο SSO',
   },
 
   email: {
