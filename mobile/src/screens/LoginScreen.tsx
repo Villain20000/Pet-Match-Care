@@ -15,6 +15,7 @@ import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
 import { haptic } from '@/services/haptics';
+import { toast, resolveApiError } from '@/services/toast';
 
 export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
   const t = useT();
@@ -28,12 +29,10 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    setError(null);
     if (!email || password.length < 8) {
-      setError(t('login.errorsInvalidInput'));
+      toast.warning({ title: t('login.errorsInvalidInput') });
       return;
     }
     setBusy(true);
@@ -41,7 +40,11 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
       if (mode === 'login') await login(email, password);
       else await register(email, password, name || undefined);
     } catch (err) {
-      setError(String(err));
+      const resolved = resolveApiError(err, t);
+      toast.error({
+        title: resolved?.title ?? t('toast.serverError'),
+        body: resolved?.body ?? String(err),
+      });
     } finally {
       setBusy(false);
     }
@@ -50,16 +53,19 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
   const biometricUnlock = async () => {
     await haptic.tap();
     const ok = await unlockWithBiometrics();
-    if (!ok) setError(t('errors.UNAUTHORIZED'));
+    if (!ok) toast.warning({ title: t('errors.UNAUTHORIZED') });
   };
 
   const ssoLogin = async () => {
-    setError(null);
     setBusy(true);
     try {
       await startGoogleSso();
     } catch (err) {
-      setError(String(err));
+      const resolved = resolveApiError(err, t);
+      toast.error({
+        title: resolved?.title ?? t('toast.serverError'),
+        body: resolved?.body ?? String(err),
+      });
     } finally {
       setBusy(false);
     }
@@ -188,19 +194,6 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
               secureTextEntry
               placeholder={t('login.passwordPlaceholder')}
             />
-
-            {error ? (
-              <View
-                style={{
-                  backgroundColor: '#FFD4D8',
-                  padding: Spacing.md,
-                  borderRadius: Radii.md,
-                  marginBottom: Spacing.md,
-                }}
-              >
-                <Text style={{ color: Colors.crimsonDeep, fontWeight: '600', fontSize: 13 }}>{error}</Text>
-              </View>
-            ) : null}
 
             <PrimaryButton
               title={mode === 'login' ? t('login.ctaLogin') : t('login.ctaRegister')}

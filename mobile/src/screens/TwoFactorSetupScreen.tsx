@@ -8,6 +8,7 @@ import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import { haptic } from '@/services/haptics';
+import { toast, resolveApiError } from '@/services/toast';
 
 export const TwoFactorSetupScreen = () => {
   const t = useT();
@@ -18,7 +19,6 @@ export const TwoFactorSetupScreen = () => {
   const [code, setCode] = useState('');
   const [recovery, setRecovery] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void begin2fa().then((r) => {
@@ -28,14 +28,17 @@ export const TwoFactorSetupScreen = () => {
   }, [begin2fa]);
 
   const onConfirm = async () => {
-    setError(null);
     setBusy(true);
     try {
       const out = await confirm2fa(code);
       setRecovery(out.recoveryCodes);
       haptic.success();
     } catch (err) {
-      setError(String(err));
+      const resolved = resolveApiError(err, t);
+      toast.error({
+        title: resolved?.title ?? t('toast.serverError'),
+        body: resolved?.body ?? String(err),
+      });
       haptic.error();
     } finally {
       setBusy(false);
@@ -112,12 +115,6 @@ export const TwoFactorSetupScreen = () => {
               maxLength={6}
               style={{ marginTop: Spacing.xl, letterSpacing: 4 }}
             />
-
-            {error ? (
-              <Text style={{ color: Colors.crimson, fontWeight: '600', fontSize: 13, marginBottom: 6 }}>
-                {error}
-              </Text>
-            ) : null}
 
             <PrimaryButton title={t('twoFactor.ctaConfirm')} onPress={onConfirm} loading={busy} />
           </>

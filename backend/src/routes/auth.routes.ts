@@ -11,6 +11,7 @@ import {
   resendVerification,
   reset,
   stepUp,
+  updateMe,
   updatePushToken,
   verifyEmail,
   listSessions,

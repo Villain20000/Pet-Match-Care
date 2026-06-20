@@ -14,6 +14,7 @@ export interface UserDto {
   emailVerifiedAt: string | null;
   totpEnabled: boolean;
   pushToken: string | null;
+  locale: 'el' | 'en';
 }
 
 export interface BadgeDto {

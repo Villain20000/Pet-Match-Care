@@ -6,22 +6,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ToastHostProps, ToastVariant, useToastStore } from '@/services/toast';
+import { ToastHostProps, useToastStore } from '@/services/toast';
 import { Colors, Radii, Shadows, Spacing, Typography } from '@/theme';
-
-const VARIANT_ICON: Record<ToastVariant, string> = {
-  info: 'ℹ️',
-  success: '✅',
-  warning: '⚠️',
-  error: '🚫',
-};
-
-const VARIANT_PALETTE: Record<ToastVariant, { bg: string; text: string; accent: string }> = {
-  info: { bg: Colors.creamSoft, text: Colors.charcoal, accent: Colors.terracotta },
-  success: { bg: Colors.sageSoft, text: Colors.charcoal, accent: Colors.sageDeep },
-  warning: { bg: Colors.terracottaSoft, text: Colors.charcoal, accent: Colors.terracottaDeep },
-  error: { bg: Colors.crimsonDeep, text: Colors.white, accent: Colors.crimson },
-};
+import { VARIANT_ICON, VARIANT_PALETTE } from '@/components/toast-tokens';
 
 /**
  * Bottom-snackbar overlay. Mount once at app level inside the

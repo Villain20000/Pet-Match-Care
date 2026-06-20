@@ -1,16 +1,501 @@
+// =========================================================================
+// Pet-Match & Care — Prisma schema (PostgreSQL + PostGIS-friendly).
+// Greek is the source-of-truth catalog for messages; this file only defines
+// the data shapes the backend talks to. See ./migrations for prior history.
+// =========================================================================
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------------------------
+// Enums
+// -------------------------------------------------------------------------
+
+enum Role {
+  CITIZEN
+  VOLUNTEER
+  MUNICIPAL_WORKER
+  SHELTER_ADMIN
+  PLATFORM_ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum Species {
+  DOG
+  CAT
+  OTHER
+}
+
+enum AdoptionStatus {
+  AVAILABLE       // available on PetForAdoption.status
+  ADOPTED         // adopted (terminal for PetForAdoption)
+  DRAFT           // in-progress draft application
+  SUBMITTED
+  SCREENING
+  HOME_CHECK_SCHEDULED
+  APPROVED
+  REJECTED
+  ADOPTION_COMPLETED
+  CLOSED
+}
+
+enum ReportCondition {
+  STABLE
+  INJURED
+  CRITICAL
+  DECEASED
+}
+
+enum ReportStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  EXPIRED
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum NotificationKind {
+  STREAK_REMINDER
+  KARMA_REWARD
+  BADGE_UNLOCKED
+  BADGE_EARNED
+  ADOPTION_UPDATE
+  ADOPTION_STATUS_CHANGED
+  POISON_ALERT_NEARBY
+  STRAY_REPORT_NEARBY
+  STRAY_REPORT_UPDATE
+  LOST_PET_MATCH
+  GENERAL
+}
+
+enum SpotCategory {
+  PARK
+  BEACH
+  CAFE
+  VET
+  PET_STORE
+  TRAIL
+  URBAN
+  OTHER
+}
+
+enum PoisonSeverity {
+  HIGH
+  CRITICAL
+}
+
+// -------------------------------------------------------------------------
+// Identity
+// -------------------------------------------------------------------------
+
 model User {
-  id                    String   @id @default(uuid()) @db.Uuid
-  email                 String   @unique
-  passwordHash          String?
-  fullName              String?
-  avatarUrl             String?
-  role                  Role     @default(CITIZEN)
-  karmaPoints           Int      @default(0)
-  /** Preferred UI language. Drives email rendering today + future UI locale. */
-  locale                String   @default("el")
-  pushToken             String?
-  homeLatitude          Float?
-  homeLongitude         Float?
-  lastSeenAt            DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String   @unique
+  passwordHash    String?
+  fullName        String?
+  avatarUrl       String?
+  role            Role     @default(CITIZEN)
+  karmaPoints     Int      @default(0)
+  /// Preferred UI language. Drives email rendering today + future UI locale.
+  locale          String   @default("el")
+  pushToken       String?
+  homeLatitude    Float?
+  homeLongitude   Float?
+  lastSeenAt      DateTime?
+  emailVerifiedAt DateTime?
+  totpSecretEnc   String?
+  totpEnabled     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Identity links (OAuth + password providers)
+  authProviders          OAuthIdentity[]
+  refreshTokens          RefreshToken[]
+  userSessions           UserSession[]
+  recoveryCodes          RecoveryCode[]
+
+  // Activity-derived relations
+  strayReports           StrayReport[]
+  lostPets               LostPet[]
+  poisonAlerts           PoisonAlert[]
+  spotsCreated           PetFriendlySpot[]
+  spotVotes              SpotVote[]
+  dailyStreaks           DailyStreak[]
+  userBadges             UserBadge[]
+  petsForAdoption        PetForAdoption[]    @relation("ShelterPets") // only when User is a shelter admin
+  adoptionApplications   AdoptionApplication[] @relation("Applicant")
+  notifications          Notification[]
+
+  @@index([homeLatitude, homeLongitude])
+  @@index([pushToken])
+}
+
+model OAuthIdentity {
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @db.Uuid
+  provider           AuthProvider
+  providerSubjectId  String
+  email              String?
+  createdAt          DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubjectId], name: "provider_providerSubjectId")
+  @@index([userId])
+}
+
+model RefreshToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  tokenHash      String    @unique
+  familyId       String
+  userAgent      String?
+  ip             String?
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  replacedById   String?
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy     RefreshToken? @relation("Replacement", fields: [replacedById], references: [id])
+  replaces       RefreshToken[] @relation("Replacement")
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+model UserSession {
+  id            String    @id // JTI of the access token
+  userId        String    @db.Uuid
+  userAgent     String?
+  ip            String?
+  lastActiveAt  DateTime  @default(now())
+  loggedOutAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// -------------------------------------------------------------------------
+// Stray reports (φόλες & αδέσποτα)
+// -------------------------------------------------------------------------
+
+model StrayReport {
+  id                   String          @id @default(uuid()) @db.Uuid
+  reporterId           String          @db.Uuid
+  imageUrl             String
+  condition            ReportCondition
+  description          String?
+  latitude             Float
+  longitude            Float
+  addressHint          String?
+  status               ReportStatus    @default(OPEN)
+  assignedMunicipality String
+  assignedAt           DateTime?
+  expiresAt            DateTime?
+  resolvedAt           DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  reporter            User                  @relation(fields: [reporterId], references: [id])
+  updates             StrayReportUpdate[]
+
+  @@index([status])
+  @@index([assignedMunicipality])
+  @@index([latitude, longitude])
+  @@index([reporterId])
+}
+
+model StrayReportUpdate {
+  id        String      @id @default(uuid()) @db.Uuid
+  reportId  String      @db.Uuid
+  authorId  String      @db.Uuid
+  body      String
+  status    ReportStatus
+  photoUrl  String?
+  createdAt DateTime    @default(now())
+
+  report StrayReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------------------
+// Lost pets (αγγελίες χαμένων)
+// -------------------------------------------------------------------------
+
+model LostPet {
+  id           String    @id @default(uuid()) @db.Uuid
+  ownerId      String    @db.Uuid
+  name         String
+  species      Species
+  breed        String?
+  microchipId  String?
+  description  String
+  imageUrl     String
+  lastSeenAt   DateTime
+  lastSeenLat  Float
+  lastSeenLng  Float
+  addressHint  String?
+  reward       String?
+  isFound      Boolean   @default(false)
+  foundAt      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id])
+
+  @@index([species, isFound])
+  @@index([lastSeenLat, lastSeenLng])
+  @@index([ownerId])
+}
+
+// -------------------------------------------------------------------------
+// Shelter pets (ζώα προς υιοθεσία)
+// -------------------------------------------------------------------------
+
+model PetForAdoption {
+  id              String          @id @default(uuid()) @db.Uuid
+  shelterId       String          @db.Uuid
+  name            String
+  species         Species
+  age             String
+  size            String
+  description     String
+  imageUrl        String
+  status          AdoptionStatus  @default(AVAILABLE)
+  isUrgent        Boolean         @default(false)
+  isMicrochipped  Boolean         @default(false)
+  microchipNumber String?
+  isVaccinated    Boolean         @default(false)
+  isSterilized    Boolean         @default(false)
+  healthNotes     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  shelter      User                 @relation("ShelterPets", fields: [shelterId], references: [id])
+  applications AdoptionApplication[]
+
+  @@index([status, species])
+  @@index([shelterId])
+}
+
+model AdoptionApplication {
+  id              String         @id @default(uuid()) @db.Uuid
+  petId           String         @db.Uuid
+  applicantId     String         @db.Uuid
+  shelterId       String         @db.Uuid
+  state           AdoptionStatus @default(DRAFT)
+  motivation      String
+  /// JSON: { hasYard, hasKids, hasOtherPets, hoursAlone }
+  homeEnvironment Json
+  /// JSON: per-question answers
+  questionnaire   Json
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  pet       PetForAdoption       @relation(fields: [petId], references: [id])
+  applicant User                 @relation("Applicant", fields: [applicantId], references: [id])
+  homeCheck ApplicationHomeCheck?
+  audit     ApplicationAudit[]
+
+  @@unique([petId, applicantId], name: "petId_applicantId")
+  @@index([applicantId])
+  @@index([shelterId, state])
+}
+
+model ApplicationHomeCheck {
+  id              String    @id @default(uuid()) @db.Uuid
+  applicationId   String    @unique @db.Uuid
+  scheduledAt     DateTime
+  inspectorName   String
+  inspectorNotes  String?
+  passed          Boolean?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  application AdoptionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationAudit {
+  id            String         @id @default(uuid()) @db.Uuid
+  applicationId String         @db.Uuid
+  actorId       String         @db.Uuid
+  fromState     AdoptionStatus
+  toState       AdoptionStatus
+  note          String?
+  createdAt     DateTime       @default(now())
+
+  application AdoptionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+// -------------------------------------------------------------------------
+// Badges
+// -------------------------------------------------------------------------
+
+model Badge {
+  id          String      @id @default(uuid()) @db.Uuid
+  code        String      @unique
+  name        String
+  description String
+  iconEmoji   String
+  rarity      BadgeRarity @default(COMMON)
+  /// JSON predicate evaluated by services/badges.engine.ts. Shape:
+  /// { kind: 'REPORTS_CREATED' | 'POISONS_REPORTED' | 'SPOTS_VERIFIED' | 'ADOPTIONS_COMPLETED' | 'KARMA_REACHED' | 'STREAK_REACHED', threshold: number }
+  predicate   Json?
+  createdAt   DateTime    @default(now())
+
+  awardedTo UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  badgeId    String   @db.Uuid
+  awardedAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId], name: "userId_badgeId")
+  @@index([userId])
+}
+
+// -------------------------------------------------------------------------
+// Pet-friendly spots (χώροι φιλικοί προς κατοικίδια)
+// -------------------------------------------------------------------------
+
+model PetFriendlySpot {
+  id         String       @id @default(uuid()) @db.Uuid
+  creatorId  String       @db.Uuid
+  name       String
+  category   SpotCategory
+  latitude   Float
+  longitude  Float
+  address    String?
+  upvotes    Int          @default(0)
+  downvotes  Int          @default(0)
+  isVerified Boolean      @default(false)
+  isFlagged  Boolean      @default(false)
+  flagReason String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  creator User       @relation(fields: [creatorId], references: [id])
+  votes   SpotVote[]
+
+  @@index([category, isFlagged])
+  @@index([latitude, longitude])
+}
+
+model SpotVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  spotId    String   @db.Uuid
+  value     Int      // +1 or -1
+  createdAt DateTime @default(now())
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot PetFriendlySpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spotId], name: "userId_spotId")
+  @@index([spotId])
+}
+
+// -------------------------------------------------------------------------
+// Poison alerts (αναφορές για φόλες)
+// -------------------------------------------------------------------------
+
+model PoisonAlert {
+  id          String         @id @default(uuid()) @db.Uuid
+  reporterId  String         @db.Uuid
+  latitude    Float
+  longitude   Float
+  addressHint String?
+  description String?
+  severity    PoisonSeverity @default(HIGH)
+  createdAt   DateTime       @default(now())
+  expiresAt   DateTime
+
+  reporter User @relation(fields: [reporterId], references: [id])
+
+  @@index([expiresAt])
+  @@index([latitude, longitude])
+  @@index([reporterId])
+}
+
+// -------------------------------------------------------------------------
+// Daily streaks (καθημερινά check-in)
+// -------------------------------------------------------------------------
+
+model DailyStreak {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date], name: "userId_date")
+  @@index([userId])
+}
+
+// -------------------------------------------------------------------------
+// Notifications
+// -------------------------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  kind      NotificationKind
+  title     String
+  body      String
+  data      Json
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}

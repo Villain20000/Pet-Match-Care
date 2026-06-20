@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Image,
-  Alert,
   ActivityIndicator,
   Pressable,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { reportsApi } from '@/services/reports';
 import { getCurrentLocation, type ResolvedLocation } from '@/services/location';
 import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
+import { toast, resolveApiError } from '@/services/toast';
 import type { StrayReportDto } from '@/types';
 
 export const ReportScreen = () => {
@@ -60,7 +60,7 @@ export const ReportScreen = () => {
       });
       useAuthStore.getState().setHomeLocation(loc.latitude, loc.longitude);
     } catch (err) {
-      Alert.alert(t('report.locationError'), String(err));
+      toast.warning({ title: t('report.locationError'), body: String(err) });
     } finally {
       setLoadingLocation(false);
     }
@@ -69,7 +69,7 @@ export const ReportScreen = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('report.photoPermission'), t('common.continue'));
+      toast.warning({ title: t('report.photoPermission'), body: t('common.continue') });
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -85,9 +85,18 @@ export const ReportScreen = () => {
   };
 
   const submit = async () => {
-    if (!image) return Alert.alert(t('report.needPhoto'), t('report.needPhotoBody'));
-    if (!condition) return Alert.alert(t('report.needCondition'), t('report.needConditionBody'));
-    if (!location) return Alert.alert(t('report.needLocation'), t('report.needLocationBody'));
+    if (!image) {
+      toast.warning({ title: t('report.needPhoto'), body: t('report.needPhotoBody') });
+      return;
+    }
+    if (!condition) {
+      toast.warning({ title: t('report.needCondition'), body: t('report.needConditionBody') });
+      return;
+    }
+    if (!location) {
+      toast.warning({ title: t('report.needLocation'), body: t('report.needLocationBody') });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -101,23 +110,20 @@ export const ReportScreen = () => {
       });
 
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        t('report.submitted'),
-        t('report.submittedBody', { municipality: report.assignedMunicipality ?? 'Δήμο' }),
-        [
-          {
-            text: t('common.yes'),
-            onPress: () => {
-              setImage(null);
-              setCondition(null);
-              setDescription('');
-            },
-          },
-        ],
-      );
+      toast.success({
+        title: t('report.submitted'),
+        body: t('report.submittedBody', { municipality: report.assignedMunicipality ?? 'Δήμο' }),
+      });
+      setImage(null);
+      setCondition(null);
+      setDescription('');
     } catch (err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t('common.retry'), String(err));
+      const resolved = resolveApiError(err, t);
+      toast.error({
+        title: resolved?.title ?? t('toast.serverError'),
+        body: resolved?.body ?? String(err),
+      });
     } finally {
       setSubmitting(false);
     }

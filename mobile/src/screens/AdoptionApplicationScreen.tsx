@@ -9,6 +9,7 @@ import { useCreateDraft, isStepUpRequired } from '@/services/applications';
 import { useT } from '@/services/i18n';
 import { Colors, Radii, Shadows, Spacing } from '@/theme';
 import { haptic } from '@/services/haptics';
+import { toast, resolveApiError } from '@/services/toast';
 
 type QKind = 'text' | 'boolean' | 'number';
 interface QuestionnaireQuestion {
@@ -66,6 +67,11 @@ export const AdoptionApplicationScreen = ({ route, navigation }: any) => {
         setShowReAuth(true);
       } else {
         haptic.error();
+        const resolved = resolveApiError(err, t);
+        toast.error({
+          title: resolved?.title ?? t('toast.serverError'),
+          body: resolved?.body ?? String(err),
+        });
       }
     }
   };
