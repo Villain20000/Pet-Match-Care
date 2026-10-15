@@ -313,3 +313,28 @@ export const findOrCreateUserForSso = async (args: {
   await evaluateBadges(newUser.id);
   return newUser;
 };
+
+export const loginOrRegisterOAuth = async (
+  provider: AuthProvider,
+  subject: string,
+  email: string,
+  name?: string,
+) => {
+  const user = await findOrCreateUserForSso({
+    provider,
+    subject,
+    email,
+    emailVerified: true,
+    displayName: name,
+  });
+  const tokens = await issueTokensForUser(user.id, user.role, user.email);
+  return {
+    ...tokens,
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    },
+  };
+};

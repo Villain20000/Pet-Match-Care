@@ -36,6 +36,13 @@ import { NotificationsScreen } from '@/screens/NotificationsScreen';
 import { OnboardingScreen } from '@/screens/OnboardingScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { FavoritesScreen } from '@/screens/FavoritesScreen';
+import { ShelterAdminScreen } from '@/screens/ShelterAdminScreen';
+import { MunicipalWorkerScreen } from '@/screens/MunicipalWorkerScreen';
+import { FosterScreen } from '@/screens/FosterScreen';
+import { MedicalRecordsScreen } from '@/screens/MedicalRecordsScreen';
+import { ChatListScreen } from '@/screens/ChatListScreen';
+import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
+import { DonationsScreen } from '@/screens/DonationsScreen';
 import { useAuthStore } from '@/services/auth';
 import type { PetForAdoptionDto } from '@/types';
 
@@ -65,6 +72,13 @@ export type RootStackParamList = {
   Notifications: undefined;
   Profile: undefined;
   Favorites: undefined;
+  ShelterAdmin: undefined;
+  MunicipalWorker: undefined;
+  Foster: undefined;
+  MedicalRecords: { petId: string; petName?: string };
+  ChatList: undefined;
+  ChatRoom: { roomId: string; topic?: string };
+  Donations: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -187,6 +201,13 @@ const StackFlow = ({ contrast, setContrast, colorBlind, setColorBlind }: Setting
     <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     <Stack.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Favorites' }} />
+    <Stack.Screen name="ShelterAdmin" component={ShelterAdminScreen} options={{ title: 'Shelter Dashboard' }} />
+    <Stack.Screen name="MunicipalWorker" component={MunicipalWorkerScreen} options={{ title: 'Municipal Dashboard' }} />
+    <Stack.Screen name="Foster" component={FosterScreen} options={{ title: 'Foster Care' }} />
+    <Stack.Screen name="MedicalRecords" component={MedicalRecordsScreen} options={{ title: 'Medical Records' }} />
+    <Stack.Screen name="ChatList" component={ChatListScreen} options={{ title: 'Messages' }} />
+    <Stack.Screen name="ChatRoom" component={ChatRoomScreen} options={{ title: 'Chat' }} />
+    <Stack.Screen name="Donations" component={DonationsScreen} options={{ title: 'Donations' }} />
   </Stack.Navigator>
   );
 };

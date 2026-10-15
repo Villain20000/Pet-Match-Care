@@ -78,3 +78,37 @@ export const buildGoogleAuthUrl = (state: string, redirectUri: string): string =
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 };
+
+export interface AppleProfile {
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  name?: string;
+}
+
+export const processAppleToken = async (idToken: string, userPayload?: { name?: { firstName?: string; lastName?: string }; email?: string }): Promise<AppleProfile> => {
+  // Simple payload extraction from JWT for Apple Sign-In
+  try {
+    const parts = idToken.split('.');
+    if (parts.length !== 3) throw new HttpError(400, 'INVALID_INPUT');
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+
+    const email = payload.email || userPayload?.email;
+    if (!email) throw new HttpError(400, 'INVALID_INPUT');
+
+    let fullName: string | undefined;
+    if (userPayload?.name?.firstName || userPayload?.name?.lastName) {
+      fullName = `${userPayload.name.firstName || ''} ${userPayload.name.lastName || ''}`.trim();
+    }
+
+    return {
+      sub: payload.sub,
+      email,
+      email_verified: payload.email_verified === 'true' || payload.email_verified === true,
+      name: fullName,
+    };
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    throw new HttpError(400, 'INVALID_INPUT');
+  }
+};

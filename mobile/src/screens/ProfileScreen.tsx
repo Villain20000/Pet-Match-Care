@@ -282,8 +282,65 @@ export const ProfileScreen = () => {
           </ScrollView>
         )}
 
-        {/* Shortcuts */}
-        <View style={{ marginTop: Spacing.xl, gap: Spacing.sm }}>
+        {/* Management & Extra Services Navigation */}
+        <Text style={{ fontSize: 20, fontWeight: '700', color: colors.charcoal, marginTop: Spacing.xl, marginBottom: Spacing.sm }}>
+          Υπηρεσίες & Διαχείριση
+        </Text>
+        <View style={{ gap: Spacing.sm }}>
+          {user.role === 'SHELTER_ADMIN' && (
+            <Pressable
+              onPress={() => navigation.navigate('ShelterAdmin')}
+              android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+              style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+            >
+              <Text style={{ fontSize: 20, marginRight: 12 }}>🏠</Text>
+              <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Διαχείριση Καταφυγίου</Text>
+              <Text style={{ color: colors.charcoalSoft }}>›</Text>
+            </Pressable>
+          )}
+
+          {user.role === 'MUNICIPAL_WORKER' && (
+            <Pressable
+              onPress={() => navigation.navigate('MunicipalWorker')}
+              android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+              style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+            >
+              <Text style={{ fontSize: 20, marginRight: 12 }}>🏛️</Text>
+              <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Δημοτική Υπηρεσία</Text>
+              <Text style={{ color: colors.charcoalSoft }}>›</Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={() => navigation.navigate('Foster')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🏡</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Προσωρινή Φιλοξενία (Foster)</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('ChatList')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>💬</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Μηνύματα & Συνομιλίες</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('Donations')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>💝</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Δωρεές & Ενίσχυση</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
           <Pressable
             onPress={() => navigation.navigate('Favorites')}
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
@@ -293,6 +350,7 @@ export const ProfileScreen = () => {
             <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>{t('profile.openFavorites')}</Text>
             <Text style={{ color: colors.charcoalSoft }}>›</Text>
           </Pressable>
+
           <Pressable
             onPress={() => navigation.navigate('Ρυθμίσεις')}
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}

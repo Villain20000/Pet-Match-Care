@@ -23,6 +23,7 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
   const register = useAuthStore((s) => s.register);
   const unlockWithBiometrics = useAuthStore((s) => s.unlockWithBiometrics);
   const startGoogleSso = useAuthStore((s) => s.startGoogleSso);
+  const startAppleSso = useAuthStore((s) => s.startAppleSso);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
@@ -241,24 +242,43 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
               <View style={{ flex: 1, height: 1, backgroundColor: Colors.creamDeep }} />
             </View>
 
-            <Pressable
-              onPress={ssoLogin}
-              disabled={busy}
-              android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: Spacing.md,
-                borderRadius: Radii.md,
-                borderWidth: 2,
-                borderColor: Colors.charcoal,
-                backgroundColor: Colors.white,
-              }}
-            >
-              <Text style={{ marginRight: 8 }}>🇬</Text>
-              <Text style={{ color: Colors.charcoal, fontWeight: '700' }}>{t('login.ssoGoogle')}</Text>
-            </Pressable>
+            <View style={{ gap: 8 }}>
+              <Pressable
+                onPress={ssoLogin}
+                disabled={busy}
+                android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: Spacing.md,
+                  borderRadius: Radii.md,
+                  borderWidth: 2,
+                  borderColor: Colors.charcoal,
+                  backgroundColor: Colors.white,
+                }}
+              >
+                <Text style={{ marginRight: 8 }}>🌐</Text>
+                <Text style={{ color: Colors.charcoal, fontWeight: '700' }}>{t('login.ssoGoogle')}</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={ssoLogin}
+                disabled={busy}
+                android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: Spacing.md,
+                  borderRadius: Radii.md,
+                  backgroundColor: Colors.charcoal,
+                }}
+              >
+                <Text style={{ marginRight: 8 }}>🍎</Text>
+                <Text style={{ color: Colors.white, fontWeight: '700' }}>Sign in with Apple</Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
