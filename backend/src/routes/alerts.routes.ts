@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middlewares/auth';
+import { asyncHandler } from '@/middlewares/asyncHandler';
 import {
   createPoisonAlert,
   getActivePoisonAlerts,
@@ -8,6 +9,6 @@ import {
 
 export const alertsRouter = Router();
 
-alertsRouter.post('/poison', requireAuth, createPoisonAlert);
-alertsRouter.get('/poison/active', requireAuth, getActivePoisonAlerts);
-alertsRouter.post('/poison/:id/test-push', requireAuth, resendPoisonAlertPush);
+alertsRouter.post('/poison', requireAuth, asyncHandler(createPoisonAlert));
+alertsRouter.get('/poison/active', requireAuth, asyncHandler(getActivePoisonAlerts));
+alertsRouter.post('/poison/:id/test-push', requireAuth, asyncHandler(resendPoisonAlertPush));

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { type Role } from '@prisma/client';
 import { prisma } from '@/config/prisma';
 import { signAccessToken } from '@/utils/jwt';
 import type { IssuedTokens } from '@/services/auth.service';
@@ -49,7 +50,7 @@ const UpdateMeSchema = z.object({
 });
 
 const sanitizeUser = (u: {
-  id: string; email: string; fullName: string | null; avatarUrl: string | null; role: any;
+  id: string; email: string; fullName: string | null; avatarUrl: string | null; role: Role;
   karmaPoints: number; emailVerifiedAt: Date | null; totpEnabled: boolean; pushToken: string | null; locale: string;
 }): UserDto => ({
   id: u.id, email: u.email, fullName: u.fullName, avatarUrl: u.avatarUrl ?? null,
@@ -99,7 +100,7 @@ export const register = async (req: Request, res: Response) => {
     user.id,
     user.role,
     user.email,
-    { ...clientMeta(req), locale: effective } as any,
+    { ...clientMeta(req), locale: effective as 'el' | 'en' },
   );
   return res.status(201).json({
     ...tokensResponse(tokens!),
@@ -115,7 +116,7 @@ export const login = async (req: Request, res: Response) => {
     user.id,
     user.role,
     user.email,
-    { ...clientMeta(req), locale: user.locale } as any,
+    { ...clientMeta(req), locale: user.locale as 'el' | 'en' },
   );
   return res.json({
     ...tokensResponse(tokens!),
@@ -217,7 +218,7 @@ export const stepUp = async (req: Request, res: Response) => {
       amr: ['totp', 'pwd', ...(Array.isArray(req.user!.amr) ? req.user!.amr.filter((m) => m !== 'totp') : [])],
       stepUpExpiresAt: expiresAtSeconds,
       locale: user.locale as 'el' | 'en',
-    } as any,
+    },
     stepUpTtl,
   );
   void jti; void expiresAt;

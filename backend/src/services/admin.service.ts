@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type AdoptionStatus } from '@prisma/client';
 import { HttpError } from '@/middlewares/error';
 
 const prisma = new PrismaClient();
@@ -52,7 +52,7 @@ export const adminPetsService = {
     size: string;
     description: string;
     imageUrl: string;
-    status: any;
+    status: AdoptionStatus;
     isUrgent: boolean;
     isMicrochipped: boolean;
     microchipNumber: string;

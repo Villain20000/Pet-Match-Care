@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AdoptionStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
 import { throwHttp } from "@/middlewares/error";
@@ -59,8 +60,8 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
         where: { id: existing.id },
         data: {
           motivation: input.motivation,
-          homeEnvironment: input.homeEnvironment as any,
-          questionnaire: input.questionnaire as any,
+          homeEnvironment: input.homeEnvironment as Prisma.InputJsonValue,
+          questionnaire: input.questionnaire as Prisma.InputJsonValue,
           state: 'DRAFT',
         },
       });
@@ -72,8 +73,8 @@ export const createOrUpdateDraft = async (req: Request, res: Response) => {
         applicantId: req.user!.sub,
         shelterId: pet!.shelterId,
         motivation: input.motivation,
-        homeEnvironment: input.homeEnvironment as any,
-        questionnaire: input.questionnaire as any,
+        homeEnvironment: input.homeEnvironment as Prisma.InputJsonValue,
+        questionnaire: input.questionnaire as Prisma.InputJsonValue,
         state: 'DRAFT',
       },
     });

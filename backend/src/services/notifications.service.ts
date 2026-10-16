@@ -1,5 +1,5 @@
+import { Prisma, type NotificationKind } from '@prisma/client';
 import { prisma } from '@/config/prisma';
-import type { NotificationKind } from '@prisma/client';
 
 interface CreateArgs {
   userId: string;
@@ -16,7 +16,7 @@ export const createNotification = async (args: CreateArgs) => {
       kind: args.kind,
       title: args.title,
       body: args.body,
-      data: (args.data ?? {}) as any,
+      data: (args.data ?? {}) as Prisma.InputJsonValue,
     },
   });
 };

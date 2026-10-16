@@ -54,7 +54,7 @@ export const resolveKey = (locale: Locale, dotted: string): string => {
  * the header, since they persisted their preference on the server.
  */
 export const localeForRequest = (req: Request): Locale => {
-  const userLocale = (req as any).user?.locale as Locale | undefined;
+  const userLocale = req.user?.locale;
   if (userLocale === 'el' || userLocale === 'en') return userLocale;
   return negotiateLocale(req.headers['accept-language']);
 };

@@ -19,36 +19,37 @@ import {
 import { begin, confirm, disable } from '@/controllers/totp.controller';
 import { callbackGoogle, startGoogle } from '@/controllers/oauth.controller';
 import { requireAuth } from '@/middlewares/auth';
+import { asyncHandler } from '@/middlewares/asyncHandler';
 import { wireError } from '@/middlewares/error';
 
 export const authRouter = Router();
 
 // ----- Identity / password -----
-authRouter.post('/register', register);
-authRouter.post('/login', login);
-authRouter.post('/refresh', refresh);
-authRouter.post('/logout', logout);
-authRouter.post('/logout-everywhere', requireAuth, logoutEverywhere);
-authRouter.get('/me', requireAuth, me);
-authRouter.get('/sessions', requireAuth, listSessions);
+authRouter.post('/register', asyncHandler(register));
+authRouter.post('/login', asyncHandler(login));
+authRouter.post('/refresh', asyncHandler(refresh));
+authRouter.post('/logout', asyncHandler(logout));
+authRouter.post('/logout-everywhere', requireAuth, asyncHandler(logoutEverywhere));
+authRouter.get('/me', requireAuth, asyncHandler(me));
+authRouter.get('/sessions', requireAuth, asyncHandler(listSessions));
 
 // ----- Email verification -----
-authRouter.post('/verify-email', verifyEmail);
-authRouter.post('/resend-verification', requireAuth, resendVerification);
+authRouter.post('/verify-email', asyncHandler(verifyEmail));
+authRouter.post('/resend-verification', requireAuth, asyncHandler(resendVerification));
 
 // ----- Password reset -----
-authRouter.post('/forgot', forgot);
-authRouter.post('/reset', reset);
+authRouter.post('/forgot', asyncHandler(forgot));
+authRouter.post('/reset', asyncHandler(reset));
 
 // ----- 2FA / step-up -----
-authRouter.post('/2fa/begin', requireAuth, begin);
-authRouter.post('/2fa/confirm', requireAuth, confirm);
-authRouter.post('/2fa/disable', requireAuth, disable);
-authRouter.post('/step-up', requireAuth, stepUp);
+authRouter.post('/2fa/begin', requireAuth, asyncHandler(begin));
+authRouter.post('/2fa/confirm', requireAuth, asyncHandler(confirm));
+authRouter.post('/2fa/disable', requireAuth, asyncHandler(disable));
+authRouter.post('/step-up', requireAuth, asyncHandler(stepUp));
 
 // ----- Push -----
-authRouter.put('/push-token', requireAuth, updatePushToken);
-authRouter.patch('/me', requireAuth, updateMe);
+authRouter.put('/push-token', requireAuth, asyncHandler(updatePushToken));
+authRouter.patch('/me', requireAuth, asyncHandler(updateMe));
 
 // ----- OAuth (Google) -----
 authRouter.get('/oauth/google/start', startGoogle);

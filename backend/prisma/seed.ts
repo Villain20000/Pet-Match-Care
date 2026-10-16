@@ -360,6 +360,11 @@ const DEMO_FOSTER = {
  * pets or the applicants themselves can go. The audit + home-check rows
  * cascade along with their application. */
 async function deleteDemoRows() {
+  // Favorites are removed before the pets they point at, mirroring the
+  // "children first" ordering below.
+  await prisma.favorite.deleteMany({
+    where: { user: { email: { in: demoEmailList() } } },
+  });
   await prisma.adoptionApplication.deleteMany({
     where: { applicant: { email: { in: demoEmailList() } } },
   });
@@ -372,6 +377,16 @@ async function deleteDemoRows() {
     where: { user: { email: { in: demoEmailList() } } },
   });
   await prisma.userBadge.deleteMany({
+    where: { user: { email: { in: demoEmailList() } } },
+  });
+  // Stray reports are owned by their (demo) reporter, so they are removed
+  // explicitly — the seeder recreates them below. StrayReportUpdate
+  // rows cascade along with their report.
+  await prisma.strayReport.deleteMany({
+    where: { reporter: { email: { in: demoEmailList() } } },
+  });
+  // The volunteer foster profile is re-created on every run.
+  await prisma.fosterProfile.deleteMany({
     where: { user: { email: { in: demoEmailList() } } },
   });
 }

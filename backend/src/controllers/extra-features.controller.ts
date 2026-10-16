@@ -89,7 +89,7 @@ export const fosterController = {
       const { city, species } = req.query;
       const profiles = await fosterService.searchProfiles({
         city: city as string,
-        species: species as any,
+        species: typeof species === 'string' ? (species as 'DOG' | 'CAT' | 'OTHER') : undefined,
       });
       res.json({ success: true, data: profiles });
     } catch (err) {

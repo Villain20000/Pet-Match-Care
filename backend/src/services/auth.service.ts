@@ -38,7 +38,7 @@ export const issueTokensForUser = async (
   userId: string,
   role: Role,
   email: string,
-  meta: { userAgent?: string; ip?: string; familyId?: string } = {},
+  meta: { userAgent?: string; ip?: string; familyId?: string; locale?: 'el' | 'en' } = {},
 ): Promise<IssuedTokens> => {
   const familyId = meta.familyId ?? crypto.randomUUID();
 
@@ -46,7 +46,8 @@ export const issueTokensForUser = async (
     sub: userId,
     role,
     email,
-  } as any);
+    locale: meta.locale,
+  });
 
   const refreshPlain = generateOpaqueToken();
   const refreshHash = sha256Hex(refreshPlain);
@@ -92,8 +93,7 @@ export const rotateRefreshToken = async (
   // Re-mint with the user's CURRENT locale (in case they toggled it).
   const replacement = await issueTokensForUser(user.id, user.role, user.email, {
     ...meta,
-    // locale is in JWT payload only — issueTokensForUser doesn't need it directly.
-  } as any);
+  });
 
   const newRow = await prisma.refreshToken.findUnique({
     where: { tokenHash: sha256Hex(replacement.refreshToken) },

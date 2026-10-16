@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { requireAuth } from '@/middlewares/auth';
 import {
   createLostPet,
@@ -14,7 +14,7 @@ lostPetsRouter.post('/', requireAuth, createLostPet);
 lostPetsRouter.post('/:id/found', requireAuth, markFound);
 lostPetsRouter.get('/matches', requireAuth, findMatchesForReport);
 
-function optionalAuth(req: any, _res: any, next: any) {
+function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     try {
