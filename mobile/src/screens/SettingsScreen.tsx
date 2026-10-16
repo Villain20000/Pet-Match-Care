@@ -164,6 +164,16 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
           />
         </SettingsCard>
 
+        <SectionLabel title="Πληροφορίες & Πολιτικές" />
+        <SettingsCard>
+          <SettingsRow
+            title="Πολιτική Απορρήτου & Όροι Χρήσης"
+            subtitle="GDPR, Δικαιώματα & Κανόνες UGC"
+            actionLabel="Προβολή"
+            onPress={() => navigation.navigate('PrivacyPolicy' as any)}
+          />
+        </SettingsCard>
+
         <SectionLabel title={t('settings.sectionAccount')} />
         <SettingsCard>
           <SettingsRow
@@ -182,7 +192,20 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
               haptic.warning();
               Alert.alert(t('settings.deleteTitle'), t('settings.deleteConfirmBody'), [
                 { text: t('settings.cancel'), style: 'cancel' },
-                { text: t('settings.deleteAction'), style: 'destructive', onPress: () => void logout() },
+                {
+                  text: t('settings.deleteAction'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      const { api } = await import('@/services/api');
+                      await api.delete('/auth/account');
+                    } catch {
+                      /* handle */
+                    } finally {
+                      void logout();
+                    }
+                  },
+                },
               ]);
             }}
           />

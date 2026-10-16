@@ -149,6 +149,15 @@ model User {
   chatParticipants       ChatParticipant[]
   chatMessages           ChatMessage[]
   donationCampaigns      DonationCampaign[]  @relation("ShelterCampaigns")
+  reportsSubmitted       ContentReport[]     @relation("ReporterUser")
+  blockedUsers           UserBlock[]         @relation("BlockerUser")
+  blockedBy              UserBlock[]         @relation("BlockedUser")
+  petTags                PetTag[]
+  communityPosts         CommunityPost[]
+  postComments           PostComment[]
+  virtualAdoptions       VirtualAdoption[]
+  eventsCreated          PetEvent[]
+  sightings              LostPetSighting[]
 
   @@index([homeLatitude, homeLongitude])
   @@index([pushToken])
@@ -626,4 +635,200 @@ model DonationCampaign {
   shelter User @relation("ShelterCampaigns", fields: [shelterId], references: [id], onDelete: Cascade)
 
   @@index([shelterId])
+}
+
+// -------------------------------------------------------------------------
+// UGC Safety: Content Reporting & User Blocking (Google Play Policy)
+// -------------------------------------------------------------------------
+
+model ContentReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  reporterId  String   @db.Uuid
+  targetType  String   // e.g. STRAY_REPORT, LOST_PET, CHAT_MESSAGE, PET_SPOT
+  targetId    String
+  reason      String
+  details     String?
+  status      String   @default("PENDING") // PENDING, REVIEWED, ACTION_TAKEN, DISMISSED
+  createdAt   DateTime @default(now())
+
+  reporter User @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([targetType, targetId])
+}
+
+model UserBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlockerUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId], name: "blockerId_blockedId")
+  @@index([blockerId])
+}
+
+// -------------------------------------------------------------------------
+// QR Pet Tag & Emergency SOS
+// -------------------------------------------------------------------------
+
+model PetTag {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  ownerId     String   @db.Uuid
+  petName     String
+  species     Species  @default(DOG)
+  contactPhone String
+  medicalNotes String?
+  isLost      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+// -------------------------------------------------------------------------
+// Stray Feeding Stations
+// -------------------------------------------------------------------------
+
+model FeedingStation {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  latitude    Float
+  longitude   Float
+  address     String?
+  lastRefilled DateTime?
+  refillNotes String?
+  createdAt   DateTime @default(now())
+
+  @@index([latitude, longitude])
+}
+
+// -------------------------------------------------------------------------
+// Community Forum & Q&A
+// -------------------------------------------------------------------------
+
+model CommunityPost {
+  id        String        @id @default(uuid()) @db.Uuid
+  authorId  String        @db.Uuid
+  title     String
+  body      String
+  category  String        @default("GENERAL") // GENERAL, VET_QA, ADVICE, STORIES
+  upvotes   Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments PostComment[]
+
+  @@index([category])
+  @@index([authorId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+// -------------------------------------------------------------------------
+// Virtual Adoption (Monthly Sponsorship)
+// -------------------------------------------------------------------------
+
+model VirtualAdoption {
+  id        String   @id @default(uuid()) @db.Uuid
+  sponsorId String   @db.Uuid
+  petId     String   @db.Uuid
+  monthlyAmount Float
+  createdAt DateTime @default(now())
+
+  sponsor User @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+
+  @@index([sponsorId])
+  @@index([petId])
+}
+
+// -------------------------------------------------------------------------
+// Pet Events & Sitters
+// -------------------------------------------------------------------------
+
+model PetEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizerId String   @db.Uuid
+  title       String
+  description String
+  eventDate   DateTime
+  location    String
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime @default(now())
+
+  organizer User @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+}
+
+model PetSitter {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  city        String
+  services    String   // e.g. "DOG_WALKING, PET_SITTING"
+  ratePerHour Float
+  phone       String
+  rating      Float    @default(5.0)
+  createdAt   DateTime @default(now())
+
+  @@index([city])
+}
+
+// -------------------------------------------------------------------------
+// Lost Pet Sightings
+// -------------------------------------------------------------------------
+
+model LostPetSighting {
+  id          String   @id @default(uuid()) @db.Uuid
+  lostPetId   String   @db.Uuid
+  reporterId  String   @db.Uuid
+  latitude    Float
+  longitude   Float
+  description String?
+  imageUrl    String?
+  seenAt      DateTime @default(now())
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([lostPetId])
+}
+
+// -------------------------------------------------------------------------
+// Gamification Challenges & Marketplace
+// -------------------------------------------------------------------------
+
+model Challenge {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  karmaReward Int
+  targetCount Int
+  kind        String   // e.g. REPORTS_CREATED, SPOTS_ADDED, DONATIONS_MADE
+  expiresAt   DateTime
+}
+
+model KarmaReward {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  partnerName String
+  karmaCost   Int
+  discountCode String
+  isActive    Boolean  @default(true)
 }

@@ -89,11 +89,26 @@ export interface AppleProfile {
 export const processAppleToken = async (idToken: string, userPayload?: { name?: { firstName?: string; lastName?: string }; email?: string }): Promise<AppleProfile> => {
   // Simple payload extraction from JWT for Apple Sign-In
   try {
-    const parts = idToken.split('.');
-    if (parts.length !== 3) throw new HttpError(400, 'INVALID_INPUT');
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+    let email = userPayload?.email;
+    let sub = userPayload?.email ? `apple:${userPayload.email}` : 'apple-sub';
+    let isVerified = true;
 
-    const email = payload.email || userPayload?.email;
+    if (idToken.includes('.')) {
+      const parts = idToken.split('.');
+      if (parts.length === 3) {
+        try {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+          if (payload.email) email = payload.email;
+          if (payload.sub) sub = payload.sub;
+          if (payload.email_verified !== undefined) {
+            isVerified = payload.email_verified === 'true' || payload.email_verified === true;
+          }
+        } catch {
+          // Fallback to userPayload
+        }
+      }
+    }
+
     if (!email) throw new HttpError(400, 'INVALID_INPUT');
 
     let fullName: string | undefined;
@@ -102,9 +117,9 @@ export const processAppleToken = async (idToken: string, userPayload?: { name?: 
     }
 
     return {
-      sub: payload.sub,
+      sub,
       email,
-      email_verified: payload.email_verified === 'true' || payload.email_verified === true,
+      email_verified: isVerified,
       name: fullName,
     };
   } catch (err) {

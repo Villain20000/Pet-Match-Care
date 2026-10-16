@@ -19,6 +19,8 @@ import { notificationsRouter } from '@/routes/notifications.routes';
 import { timelineRouter } from '@/routes/timeline.routes';
 import { favoritesRouter } from '@/routes/favorites.routes';
 import { extraFeaturesRouter } from '@/routes/extra-features.routes';
+import { ugcRouter } from '@/routes/ugc.routes';
+import { platformFeaturesRouter } from '@/routes/platform-features.routes';
 import { listInbox, clearInbox } from '@/controllers/dev-email.controller';
 
 export const buildApp = (): Application => {
@@ -74,6 +76,8 @@ export const buildApp = (): Application => {
   app.use('/api/notifications', notificationsRouter);
   app.use('/api/favorites', favoritesRouter);
   app.use('/api', extraFeaturesRouter);
+  app.use('/api', ugcRouter);
+  app.use('/api', platformFeaturesRouter);
 
   // Dev-only inbox preview. Triple-guarded (NODE_ENV, env var, header).
   app.get('/api/_dev/email-preview', listInbox);
