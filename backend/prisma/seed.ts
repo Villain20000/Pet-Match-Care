@@ -14,12 +14,9 @@
  *
  * Run: npm run prisma:seed
  */
-import { hashPassword } from '../src/utils/password';
-import { findClosestMunicipality } from '../src/services/municipality.service';
-import { prisma } from '../src/config/prisma';
-import { env } from '../src/config/env';
-import { evaluateBadges } from '../src/services/badges.engine';
+import * as bcrypt from 'bcryptjs';
 import {
+  PrismaClient,
   AuthProvider,
   AdoptionStatus,
   BadgeRarity,
@@ -29,6 +26,49 @@ import {
   Role,
   Species,
 } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+const hashPassword = async (plain: string): Promise<string> => bcrypt.hash(plain, 12);
+
+const STRAY_REPORT_TTL_DAYS = 14;
+
+const GREEK_MUNICIPALITIES = [
+  { name: 'Δήμος Αθηναίων', latitude: 37.9842, longitude: 23.7351 },
+  { name: 'Δήμος Θεσσαλονίκης', latitude: 40.6401, longitude: 22.9444 },
+  { name: 'Δήμος Πατρέων', latitude: 38.2466, longitude: 21.7346 },
+  { name: 'Δήμος Ηρακλείου', latitude: 35.3387, longitude: 25.1441 },
+  { name: 'Δήμος Λαρισαίων', latitude: 39.6390, longitude: 22.4191 },
+  { name: 'Δήμος Βόλου', latitude: 39.3624, longitude: 22.9409 },
+  { name: 'Δήμος Ιωαννιτών', latitude: 39.6650, longitude: 20.8537 },
+  { name: 'Δήμος Καβάλας', latitude: 40.9396, longitude: 24.4012 },
+  { name: 'Δήμος Ρόδου', latitude: 36.4412, longitude: 28.2225 },
+  { name: 'Δήμος Κέρκυρας', latitude: 39.6243, longitude: 19.9217 },
+];
+
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const findClosestMunicipality = (lat: number, lng: number) => {
+  let best = GREEK_MUNICIPALITIES[0]!;
+  let bestDist = haversineKm(lat, lng, best.latitude, best.longitude);
+  for (let i = 1; i < GREEK_MUNICIPALITIES.length; i++) {
+    const candidate = GREEK_MUNICIPALITIES[i]!;
+    const dist = haversineKm(lat, lng, candidate.latitude, candidate.longitude);
+    if (dist < bestDist) {
+      best = candidate;
+      bestDist = dist;
+    }
+  }
+  return best;
+};
 
 /** Shared demo password — printed at the end so devs can log in. */
 const DEMO_PASSWORD = 'Demo12345!';
@@ -136,7 +176,7 @@ const strayReportSeeds: StrayReportSeed[] = [
     longitude: 23.7351,
     addressHint: 'Πλ. Αγίου Ζωπικιού 12, Αθηνα',
     status: ReportStatus.OPEN,
-    expiresAt: daysFromNow(env.STRAY_REPORT_TTL_DAYS),
+    expiresAt: daysFromNow(STRAY_REPORT_TTL_DAYS),
     createdAt: daysAgo(1),
   },
   {
@@ -148,7 +188,7 @@ const strayReportSeeds: StrayReportSeed[] = [
     addressHint: 'Δ. Χειμερινού 8, Θεσσαλονίκη',
     status: ReportStatus.ASSIGNED,
     assignedAt: daysAgo(10),
-    expiresAt: daysFromNow(env.STRAY_REPORT_TTL_DAYS),
+    expiresAt: daysFromNow(STRAY_REPORT_TTL_DAYS),
     createdAt: daysAgo(12),
   },
   {
@@ -258,6 +298,7 @@ const medicalRecordSeeds: MedicalRecordSeed[] = [
 ];
 
 interface HomeEnvironment {
+  [key: string]: boolean | number;
   hasYard: boolean;
   hasKids: number;
   hasOtherPets: boolean;
@@ -911,10 +952,17 @@ async function createPlatformFeaturesData(
     await prisma.petSitter.create({ data: sitter });
   }
 
-  // 8. Evaluate initial badges for demo users
+  // 8. Award initial badges for demo users directly
   const giannisId = usersByEmail.get('giannis@petmatch.demo')?.id;
   if (giannisId) {
-    await evaluateBadges(giannisId);
+    const badge = await prisma.badge.findUnique({ where: { code: 'first_report' } });
+    if (badge) {
+      await prisma.userBadge.upsert({
+        where: { userId_badgeId: { userId: giannisId, badgeId: badge.id } },
+        create: { userId: giannisId, badgeId: badge.id },
+        update: {},
+      });
+    }
   }
 }
 
@@ -938,7 +986,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error('❌ Seed failed:', error);
-  process.exit(1);
-});
+main()
+  .catch((error: unknown) => {
+    console.error('❌ Seed failed:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
