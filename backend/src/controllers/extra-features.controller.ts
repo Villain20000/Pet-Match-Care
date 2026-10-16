@@ -10,7 +10,7 @@ import { loginOrRegisterOAuth } from '@/services/auth.service';
 export const adminController = {
   async getPets(req: Request, res: Response, next: NextFunction) {
     try {
-      const pets = await adminPetsService.listShelterPets(req.user!.userId);
+      const pets = await adminPetsService.listShelterPets(req.user!.sub);
       res.json({ success: true, data: pets });
     } catch (err) {
       next(err);
@@ -19,7 +19,7 @@ export const adminController = {
 
   async createPet(req: Request, res: Response, next: NextFunction) {
     try {
-      const pet = await adminPetsService.createPet(req.user!.userId, req.body);
+      const pet = await adminPetsService.createPet(req.user!.sub, req.body);
       res.status(201).json({ success: true, data: pet });
     } catch (err) {
       next(err);
@@ -28,7 +28,7 @@ export const adminController = {
 
   async updatePet(req: Request, res: Response, next: NextFunction) {
     try {
-      const pet = await adminPetsService.updatePet(req.user!.userId, req.params.id, req.body);
+      const pet = await adminPetsService.updatePet(req.user!.sub, req.params.id, req.body);
       res.json({ success: true, data: pet });
     } catch (err) {
       next(err);
@@ -37,7 +37,7 @@ export const adminController = {
 
   async deletePet(req: Request, res: Response, next: NextFunction) {
     try {
-      await adminPetsService.deletePet(req.user!.userId, req.params.id);
+      await adminPetsService.deletePet(req.user!.sub, req.params.id);
       res.json({ success: true });
     } catch (err) {
       next(err);
@@ -57,7 +57,7 @@ export const adminController = {
   async updateReport(req: Request, res: Response, next: NextFunction) {
     try {
       const { status, body, photoUrl } = req.body;
-      const update = await adminReportsService.updateReportStatus(req.user!.userId, req.params.id, status, body, photoUrl);
+      const update = await adminReportsService.updateReportStatus(req.user!.sub, req.params.id, status, body, photoUrl);
       res.json({ success: true, data: update });
     } catch (err) {
       next(err);
@@ -68,7 +68,7 @@ export const adminController = {
 export const fosterController = {
   async getMyProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const profile = await fosterService.getProfile(req.user!.userId);
+      const profile = await fosterService.getProfile(req.user!.sub);
       res.json({ success: true, data: profile });
     } catch (err) {
       next(err);
@@ -77,7 +77,7 @@ export const fosterController = {
 
   async updateMyProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const profile = await fosterService.upsertProfile(req.user!.userId, req.body);
+      const profile = await fosterService.upsertProfile(req.user!.sub, req.body);
       res.json({ success: true, data: profile });
     } catch (err) {
       next(err);
@@ -110,7 +110,7 @@ export const medicalRecordsController = {
 
   async addRecord(req: Request, res: Response, next: NextFunction) {
     try {
-      const record = await medicalRecordsService.addRecord(req.user!.userId, req.params.petId, req.body);
+      const record = await medicalRecordsService.addRecord(req.user!.sub, req.params.petId, req.body);
       res.status(201).json({ success: true, data: record });
     } catch (err) {
       next(err);
@@ -119,7 +119,7 @@ export const medicalRecordsController = {
 
   async deleteRecord(req: Request, res: Response, next: NextFunction) {
     try {
-      await medicalRecordsService.deleteRecord(req.user!.userId, req.params.id);
+      await medicalRecordsService.deleteRecord(req.user!.sub, req.params.id);
       res.json({ success: true });
     } catch (err) {
       next(err);
@@ -130,7 +130,7 @@ export const medicalRecordsController = {
 export const chatController = {
   async listRooms(req: Request, res: Response, next: NextFunction) {
     try {
-      const rooms = await chatService.listUserRooms(req.user!.userId);
+      const rooms = await chatService.listUserRooms(req.user!.sub);
       res.json({ success: true, data: rooms });
     } catch (err) {
       next(err);
@@ -140,7 +140,7 @@ export const chatController = {
   async createRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const { targetUserId, topic } = req.body;
-      const room = await chatService.createOrGetRoom(req.user!.userId, targetUserId, topic);
+      const room = await chatService.createOrGetRoom(req.user!.sub, targetUserId, topic);
       res.json({ success: true, data: room });
     } catch (err) {
       next(err);
@@ -149,7 +149,7 @@ export const chatController = {
 
   async getMessages(req: Request, res: Response, next: NextFunction) {
     try {
-      const messages = await chatService.getMessages(req.user!.userId, req.params.roomId);
+      const messages = await chatService.getMessages(req.user!.sub, req.params.roomId);
       res.json({ success: true, data: messages });
     } catch (err) {
       next(err);
@@ -158,7 +158,7 @@ export const chatController = {
 
   async sendMessage(req: Request, res: Response, next: NextFunction) {
     try {
-      const msg = await chatService.sendMessage(req.user!.userId, req.params.roomId, req.body.text);
+      const msg = await chatService.sendMessage(req.user!.sub, req.params.roomId, req.body.text);
       res.status(201).json({ success: true, data: msg });
     } catch (err) {
       next(err);
@@ -178,7 +178,7 @@ export const donationsController = {
 
   async createCampaign(req: Request, res: Response, next: NextFunction) {
     try {
-      const campaign = await donationsService.createCampaign(req.user!.userId, req.body);
+      const campaign = await donationsService.createCampaign(req.user!.sub, req.body);
       res.status(201).json({ success: true, data: campaign });
     } catch (err) {
       next(err);

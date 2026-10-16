@@ -13,7 +13,7 @@ export const platformFeaturesController = {
 
   async createPetTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const tag = await platformFeaturesService.createPetTag(req.user!.userId, req.body);
+      const tag = await platformFeaturesService.createPetTag(req.user!.sub, req.body);
       res.status(201).json({ success: true, data: tag });
     } catch (err) {
       next(err);
@@ -58,7 +58,7 @@ export const platformFeaturesController = {
 
   async createPost(req: Request, res: Response, next: NextFunction) {
     try {
-      const post = await platformFeaturesService.createCommunityPost(req.user!.userId, req.body);
+      const post = await platformFeaturesService.createCommunityPost(req.user!.sub, req.body);
       res.status(201).json({ success: true, data: post });
     } catch (err) {
       next(err);
@@ -67,7 +67,7 @@ export const platformFeaturesController = {
 
   async addComment(req: Request, res: Response, next: NextFunction) {
     try {
-      const comment = await platformFeaturesService.addPostComment(req.params.postId, req.user!.userId, req.body.body);
+      const comment = await platformFeaturesService.addPostComment(req.params.postId, req.user!.sub, req.body.body);
       res.status(201).json({ success: true, data: comment });
     } catch (err) {
       next(err);
@@ -76,7 +76,7 @@ export const platformFeaturesController = {
 
   async sponsorPet(req: Request, res: Response, next: NextFunction) {
     try {
-      const sponsorship = await platformFeaturesService.sponsorPet(req.user!.userId, req.params.petId, req.body.amount || 15);
+      const sponsorship = await platformFeaturesService.sponsorPet(req.user!.sub, req.params.petId, req.body.amount || 15);
       res.status(201).json({ success: true, data: sponsorship });
     } catch (err) {
       next(err);
@@ -103,7 +103,7 @@ export const platformFeaturesController = {
 
   async reportSighting(req: Request, res: Response, next: NextFunction) {
     try {
-      const sighting = await platformFeaturesService.reportSighting(req.params.lostPetId, req.user!.userId, req.body);
+      const sighting = await platformFeaturesService.reportSighting(req.params.lostPetId, req.user!.sub, req.body);
       res.status(201).json({ success: true, data: sighting });
     } catch (err) {
       next(err);
