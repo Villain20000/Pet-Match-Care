@@ -52,6 +52,7 @@ interface AuthState {
   ) => Promise<LoginResponse>;
   setLocale: (locale: Locale) => Promise<void>;
   startGoogleSso: () => Promise<void>;
+  startAppleSso: () => Promise<void>;
   logout: () => Promise<void>;
   logoutEverywhere: () => Promise<void>;
 
@@ -186,6 +187,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = JSON.parse(decodeURIComponent(userJson)) as AuthenticatedUser;
     await persistUser(JSON.stringify(user));
     set({ user, requiresEmailVerification: false });
+  },
+
+  startAppleSso: async () => {
+    // Simulated Apple Sign-In exchange call
+    const res = await api.post<LoginResponse>('/auth/apple', {
+      idToken: 'mock.apple.idToken',
+      userPayload: { email: 'apple.user@example.com', name: { firstName: 'Apple', lastName: 'User' } },
+    });
+    await persistBundle({
+      accessToken: res.data.accessToken,
+      accessExpiresAt: res.data.accessExpiresAt,
+      refreshToken: res.data.refreshToken,
+      refreshExpiresAt: res.data.refreshExpiresAt,
+    });
+    await persistUser(JSON.stringify(res.data.user));
+    set({
+      user: res.data.user,
+      token: res.data.accessToken,
+      requiresEmailVerification: false,
+    });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   },
 
   logout: async () => {

@@ -29,6 +29,7 @@ enum Role {
 enum AuthProvider {
   LOCAL
   GOOGLE
+  APPLE
 }
 
 enum Species {
@@ -144,6 +145,10 @@ model User {
   adoptionApplications   AdoptionApplication[] @relation("Applicant")
   favorites              Favorite[]
   notifications          Notification[]
+  fosterProfile          FosterProfile?
+  chatParticipants       ChatParticipant[]
+  chatMessages           ChatMessage[]
+  donationCampaigns      DonationCampaign[]  @relation("ShelterCampaigns")
 
   @@index([homeLatitude, homeLongitude])
   @@index([pushToken])
@@ -312,6 +317,7 @@ model PetForAdoption {
   shelter      User                 @relation("ShelterPets", fields: [shelterId], references: [id])
   applications AdoptionApplication[]
   favoritedBy  Favorite[]
+  medicalRecords PetMedicalRecord[]
 
   @@index([status, species])
   @@index([shelterId])
@@ -518,4 +524,106 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+// -------------------------------------------------------------------------
+// Foster care (προσωρινή φιλοξενία)
+// -------------------------------------------------------------------------
+
+model FosterProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  isAvailable     Boolean  @default(true)
+  city            String
+  maxPets         Int      @default(1)
+  preferredSpecies Species @default(DOG)
+  hasGarden       Boolean  @default(false)
+  hasOtherPets    Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------------------
+// Pet medical records (ψηφιακό βιβλιάριο υγείας)
+// -------------------------------------------------------------------------
+
+model PetMedicalRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  petId       String   @db.Uuid
+  recordType  String   // e.g. VACCINE, DEWORMING, SURGERY, EXAMINATION, TREATMENT
+  title       String
+  description String?
+  performedAt DateTime
+  vetName     String?
+  nextDueDate DateTime?
+  createdAt   DateTime @default(now())
+
+  pet PetForAdoption @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+}
+
+// -------------------------------------------------------------------------
+// In-app messaging (συνομιλίες)
+// -------------------------------------------------------------------------
+
+model ChatRoom {
+  id        String            @id @default(uuid()) @db.Uuid
+  topic     String?           // e.g. Adoption, Lost Pet, General
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+}
+
+model ChatParticipant {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId], name: "roomId_userId")
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @db.Uuid
+  senderId  String   @db.Uuid
+  text      String
+  createdAt DateTime @default(now())
+
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+}
+
+// -------------------------------------------------------------------------
+// Donations & Emergency Campaigns (δωρεές & έκτακτες ανάγκες)
+// -------------------------------------------------------------------------
+
+model DonationCampaign {
+  id            String   @id @default(uuid()) @db.Uuid
+  shelterId     String   @db.Uuid
+  title         String
+  description   String
+  targetAmount  Float
+  raisedAmount  Float    @default(0)
+  neededItems   String?  // JSON string or text list of supplies
+  isEmergency   Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shelter User @relation("ShelterCampaigns", fields: [shelterId], references: [id], onDelete: Cascade)
+
+  @@index([shelterId])
 }
