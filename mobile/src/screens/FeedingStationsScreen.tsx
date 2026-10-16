@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { FeedingStationDto } from '@/types';
 
 export const FeedingStationsScreen = () => {
   const { colors } = useThemeColors();
-  const [stations, setStations] = useState<any[]>([]);
+  const [stations, setStations] = useState<FeedingStationDto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStations = async () => {
+  const fetchStations = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/feeding-stations');
+      const res = await api.get<{ data: FeedingStationDto[] }>('/feeding-stations');
       setStations(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchStations();
-  }, []);
+  }, [fetchStations]);
 
   const handleRefill = async (id: string) => {
     try {
       await api.post(`/feeding-stations/${id}/refill`, { notes: 'Ανεφοδιασμός από εθελοντή' });
       toast.success({ title: 'Ευχαριστούμε!', body: 'Ο ανεφοδιασμός καταχωρήθηκε' });
       void fetchStations();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 

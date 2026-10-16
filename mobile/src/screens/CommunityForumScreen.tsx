@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { CommunityPostDto } from '@/types';
 
 export const CommunityForumScreen = () => {
   const { colors } = useThemeColors();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<CommunityPostDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/community/posts');
+      const res = await api.get<{ data: CommunityPostDto[] }>('/community/posts');
       setPosts(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchPosts();
-  }, []);
+  }, [fetchPosts]);
 
   const handleCreatePost = async () => {
     if (!title || !body) {
@@ -38,8 +39,8 @@ export const CommunityForumScreen = () => {
       setTitle('');
       setBody('');
       void fetchPosts();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 

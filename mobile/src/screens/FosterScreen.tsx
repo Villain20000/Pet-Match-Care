@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { FosterProfileDto } from '@/types';
 
 export const FosterScreen = () => {
   const { colors } = useThemeColors();
@@ -14,12 +15,12 @@ export const FosterScreen = () => {
   const [hasGarden, setHasGarden] = useState(false);
   const [hasOtherPets, setHasOtherPets] = useState(false);
   const [notes, setNotes] = useState('');
-  const [fosters, setFosters] = useState<any[]>([]);
+  const [fosters, setFosters] = useState<FosterProfileDto[]>([]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/foster/profile');
+      const res = await api.get<{ data: FosterProfileDto | null }>('/foster/profile');
       if (res.data.data) {
         const p = res.data.data;
         setCity(p.city || '');
@@ -29,12 +30,12 @@ export const FosterScreen = () => {
         setHasOtherPets(p.hasOtherPets || false);
         setNotes(p.notes || '');
       }
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleSaveProfile = async () => {
     if (!city) {
@@ -51,22 +52,22 @@ export const FosterScreen = () => {
         notes,
       });
       toast.success({ title: 'Επιτυχία', body: 'Το προφίλ φιλοξενίας ενημερώθηκε' });
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 
-  const handleSearchFosters = async () => {
+  const handleSearchFosters = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/foster/search');
+      const res = await api.get<{ data: FosterProfileDto[] }>('/foster/search');
       setFosters(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'profile') {
@@ -74,7 +75,7 @@ export const FosterScreen = () => {
     } else {
       void handleSearchFosters();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchProfile, handleSearchFosters]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream, padding: 16 }}>

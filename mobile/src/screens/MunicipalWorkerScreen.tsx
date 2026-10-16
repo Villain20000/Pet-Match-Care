@@ -1,32 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { StrayReportDto } from '@/types';
 
 export const MunicipalWorkerScreen = () => {
   const { colors } = useThemeColors();
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<StrayReportDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [updateBody, setUpdateBody] = useState('');
   const [status, setStatus] = useState<'IN_PROGRESS' | 'RESOLVED'>('IN_PROGRESS');
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/reports?municipality=Αθήνα');
+      const res = await api.get<{ data: StrayReportDto[] }>('/admin/reports?municipality=Αθήνα');
       setReports(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchReports();
-  }, []);
+  }, [fetchReports]);
 
   const handleUpdateReport = async () => {
     if (!selectedReportId || !updateBody) {
@@ -42,8 +43,8 @@ export const MunicipalWorkerScreen = () => {
       setSelectedReportId(null);
       setUpdateBody('');
       void fetchReports();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 

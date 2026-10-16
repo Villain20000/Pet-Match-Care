@@ -211,3 +211,121 @@ export interface PoisonAlertDto {
   createdAt: string;
   expiresAt: string;
 }
+
+// --- v2 platform DTOs (challenges, forum, donations, foster, chat, tags) ---
+
+export interface ChallengeDto {
+  id: string;
+  title: string;
+  description: string;
+  karmaReward: number;
+  targetCount: number;
+  kind: string;
+  expiresAt: string;
+}
+
+export interface CommunityPostDto {
+  id: string;
+  authorId: string;
+  title: string;
+  body: string;
+  category: string;
+  upvotes: number;
+  createdAt: string;
+  author?: { id: string; fullName: string | null; avatarUrl: string | null } | null;
+  comments?: unknown[];
+}
+
+export interface DonationCampaignDto {
+  id: string;
+  shelterId: string;
+  title: string;
+  description: string;
+  targetAmount: number;
+  raisedAmount: number;
+  neededItems: string | null;
+  isEmergency: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedingStationDto {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  lastRefilled: string | null;
+  refillNotes: string | null;
+  createdAt: string;
+}
+
+export interface FosterProfileDto {
+  id: string;
+  userId: string;
+  isAvailable: boolean;
+  city: string;
+  maxPets: number;
+  preferredSpecies: Species;
+  hasGarden: boolean;
+  hasOtherPets: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: { id: string; fullName: string | null; avatarUrl: string | null; role: Role } | null;
+}
+
+export interface ChatUserLite {
+  id: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface ChatMessageDto {
+  id: string;
+  roomId: string;
+  senderId: string;
+  text: string;
+  createdAt: string;
+  sender?: ChatUserLite | null;
+}
+
+export interface ChatRoomDto {
+  id: string;
+  topic: string | null;
+  createdAt: string;
+  updatedAt: string;
+  participants?: { id: string; roomId: string; userId: string; user?: ChatUserLite & { role: Role } | null }[];
+  messages?: ChatMessageDto[];
+}
+
+export interface PetTagDto {
+  id: string;
+  code: string;
+  ownerId: string;
+  petName: string;
+  species: Species;
+  contactPhone: string;
+  medicalNotes: string | null;
+  isLost: boolean;
+  createdAt: string;
+}
+
+export interface MedicalRecordDto {
+  id: string;
+  petId: string;
+  recordType: string;
+  title: string;
+  description: string | null;
+  performedAt: string;
+  vetName: string | null;
+  nextDueDate: string | null;
+  createdAt: string;
+}
+
+export interface MatchmakerResultDto {
+  matchScore: number;
+  suggestedSpecies: string;
+  recommendedPets: PetForAdoptionDto[];
+}

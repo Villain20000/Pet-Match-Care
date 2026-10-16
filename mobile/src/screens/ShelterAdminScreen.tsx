@@ -1,35 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { PetForAdoptionDto } from '@/types';
+
+const SIZE_OPTIONS = ['Μικρό', 'Μεσαίο', 'Μεγάλο'] as const;
 
 export const ShelterAdminScreen = () => {
   const { colors } = useThemeColors();
-  const [pets, setPets] = useState<any[]>([]);
+  const [pets, setPets] = useState<PetForAdoptionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [species, setSpecies] = useState<'DOG' | 'CAT' | 'OTHER'>('DOG');
   const [age, setAge] = useState('');
-  const [size, setSize] = useState('Medium');
+  const [size, setSize] = useState<string>('Μεσαίο');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  const fetchPets = async () => {
+  const fetchPets = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/pets');
+      const res = await api.get<{ data: PetForAdoptionDto[] }>('/admin/pets');
       setPets(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchPets();
-  }, []);
+  }, [fetchPets]);
 
   const handleCreatePet = async () => {
     if (!name || !description || !imageUrl) {
@@ -50,8 +53,8 @@ export const ShelterAdminScreen = () => {
       setDescription('');
       setImageUrl('');
       void fetchPets();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 
@@ -94,6 +97,23 @@ export const ShelterAdminScreen = () => {
           onChangeText={setAge}
           style={{ backgroundColor: colors.creamSoft, padding: 12, borderRadius: 8, marginBottom: 8 }}
         />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+          {SIZE_OPTIONS.map((sizeOption) => (
+            <TouchableOpacity
+              key={sizeOption}
+              onPress={() => setSize(sizeOption)}
+              style={{
+                flex: 1,
+                padding: 10,
+                borderRadius: 8,
+                backgroundColor: size === sizeOption ? colors.terracotta : colors.creamSoft,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: size === sizeOption ? colors.white : colors.charcoal }}>{sizeOption}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <TextInput
           placeholder="Περιγραφή"
           value={description}

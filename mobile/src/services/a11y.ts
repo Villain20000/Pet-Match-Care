@@ -5,25 +5,12 @@
 import { AccessibilityInfo, PixelRatio, useColorScheme as useRNColorScheme } from 'react-native';
 import { useEffect, useState } from 'react';
 
-export type ContrastMode = 'normal' | 'high';
-export type ColorBlindPreset = 'normal' | 'protanopia' | 'deuteranopia' | 'tritanopia';
-
-export const highContrast = {
-  background: '#000000',
-  card: '#0E0E0E',
-  text: '#FFFFFF',
-  muted: '#C8C8C8',
-  primary: '#FFB199', // was terracotta
-  success: '#A4F4C0', // was sage
-  danger: '#FF6A78', // was crimson
-};
-
-export const colorBlindShifts: Record<ColorBlindPreset, { crimson: string; sage: string }> = {
-  normal:       { crimson: '#E63946', sage: '#81B29A' },
-  protanopia:   { crimson: '#D67B00', sage: '#A88CC8' },
-  deuteranopia: { crimson: '#E07A00', sage: '#A88C66' },
-  tritanopia:   { crimson: '#D05A7A', sage: '#7FB29A' },
-} as const;
+export {
+  highContrast,
+  colorBlindShifts,
+  type ContrastMode,
+  type ColorBlindPreset,
+} from '@/theme';
 
 export const useDynamicType = () => {
   const [scale, setScale] = useState(1);

@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { requireAuth, requireRole } from '@/middlewares/auth';
 import { asyncHandler } from '@/middlewares/asyncHandler';
 import {
-  createReport,
   getReportById,
   listNearbyReports,
   updateReportStatus,
@@ -11,7 +10,9 @@ import { Role } from '@prisma/client';
 
 export const reportsRouter = Router();
 
-reportsRouter.post('/', requireAuth, asyncHandler(createReport));
+// NOTE: the POST handler lives in the timeline router. Mounting it here
+// as well would shadow `POST /api/reports` (see timeline.routes.ts), so
+// only the read-side routes are declared on this router.
 reportsRouter.get('/nearby', requireAuth, asyncHandler(listNearbyReports));
 reportsRouter.get('/:id', requireAuth, asyncHandler(getReportById));
 reportsRouter.patch(

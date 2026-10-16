@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 import { bilingualMessages, localeForRequest, tForRequest } from '@/services/i18n';
 
 /**
@@ -95,6 +96,13 @@ export const errorHandler = (
   if (err instanceof HttpError) {
     const { status, body } = wireError(req, err.status, err.code, err.meta);
     return res.status(status).json(body);
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2025' || err.code === 'P2023') {
+      const { status, body } = wireError(req, 404, 'NOT_FOUND');
+      return res.status(status).json(body);
+    }
   }
 
    

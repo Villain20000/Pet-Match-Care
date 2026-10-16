@@ -13,10 +13,10 @@ const CreateDraftSchema = z.object({
   petId: z.string().uuid(),
   motivation: z.string().min(10).max(2000),
   homeEnvironment: z.object({
-    hasYard: z.boolean(),
-    hasKids: z.boolean(),
-    hasOtherPets: z.boolean(),
-    hoursAlone: z.number().min(0).max(24),
+    hasYard: z.coerce.boolean(),
+    hasKids: z.union([z.boolean(), z.number()]).transform((v) => Boolean(v)),
+    hasOtherPets: z.coerce.boolean(),
+    hoursAlone: z.coerce.number().min(0).max(24),
   }),
   questionnaire: z.record(z.string(), z.union([z.string(), z.boolean(), z.number()])),
 });
@@ -165,8 +165,10 @@ export const listMine = async (req: Request, res: Response) => {
 
 export const listForShelter = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
+  const isPlatformAdmin = req.user!.role === 'PLATFORM_ADMIN';
   const apps = await prisma.adoptionApplication.findMany({
     where: {
+      ...(isPlatformAdmin ? {} : { shelterId: req.user!.sub }),
       state: { in: ['SUBMITTED', 'SCREENING', 'HOME_CHECK_SCHEDULED'] },
     },
     orderBy: { createdAt: 'desc' },

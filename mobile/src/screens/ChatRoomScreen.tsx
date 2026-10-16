@@ -1,42 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
+import type { RootStackScreenProps } from '@/navigation/types';
+import type { ChatMessageDto } from '@/types';
 
-export const ChatRoomScreen = ({ route }: any) => {
+export const ChatRoomScreen = ({ route }: RootStackScreenProps<'ChatRoom'>) => {
   const { colors } = useThemeColors();
   const roomId = route?.params?.roomId;
   const topic = route?.params?.topic || 'Συνομιλία';
 
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!roomId) return;
     try {
       setLoading(true);
-      const res = await api.get(`/chat/rooms/${roomId}/messages`);
+      const res = await api.get<{ data: ChatMessageDto[] }>(`/chat/rooms/${roomId}/messages`);
       setMessages(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomId]);
 
   useEffect(() => {
     void fetchMessages();
-  }, [roomId]);
+  }, [fetchMessages]);
 
   const handleSend = async () => {
     if (!text.trim() || !roomId) return;
     try {
-      const res = await api.post(`/chat/rooms/${roomId}/messages`, { text });
+      const res = await api.post<{ data: ChatMessageDto }>(`/chat/rooms/${roomId}/messages`, { text });
       setMessages((prev) => [...prev, res.data.data]);
       setText('');
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     }
   };
 

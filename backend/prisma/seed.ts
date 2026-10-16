@@ -18,9 +18,11 @@ import { hashPassword } from '@/utils/password';
 import { findClosestMunicipality } from '@/services/municipality.service';
 import { prisma } from '@/config/prisma';
 import { env } from '@/config/env';
+import { evaluateBadges } from '@/services/badges.engine';
 import {
   AuthProvider,
   AdoptionStatus,
+  BadgeRarity,
   NotificationKind,
   ReportCondition,
   ReportStatus,
@@ -351,44 +353,255 @@ const DEMO_FOSTER = {
   notes: 'Έχει μεγάλη αυλή και πρόσβαση σε ηλικωμένο οικόπεδο.',
 };
 
+const demoBadges = [
+  {
+    code: 'first_report',
+    name: 'Πρώτη Αναφορά',
+    description: 'Δημιούργησες την πρώτη σου αναφορά για αδέσποτο ζώο.',
+    iconEmoji: '🐾',
+    rarity: BadgeRarity.COMMON,
+    predicate: { kind: 'REPORTS_CREATED', threshold: 1 },
+  },
+  {
+    code: 'poison_sentinel',
+    name: 'Άγρυπνος Φρουρός',
+    description: 'Ειδοποίησες την κοινότητα για κίνδυνο φόλας.',
+    iconEmoji: '🚨',
+    rarity: BadgeRarity.RARE,
+    predicate: { kind: 'POISONS_REPORTED', threshold: 1 },
+  },
+  {
+    code: 'karma_starter',
+    name: 'Φίλος των Ζώων',
+    description: 'Συγκέντρωσες 50 πόντους κάρμα βοηθώντας ζώα.',
+    iconEmoji: '✨',
+    rarity: BadgeRarity.COMMON,
+    predicate: { kind: 'KARMA_REACHED', threshold: 50 },
+  },
+  {
+    code: 'karma_champion',
+    name: 'Προστάτης των Αδέσποτων',
+    description: 'Έφτασες τους 200 πόντους κάρμα προσφέροντας ουσιαστική βοήθεια.',
+    iconEmoji: '🏆',
+    rarity: BadgeRarity.EPIC,
+    predicate: { kind: 'KARMA_REACHED', threshold: 200 },
+  },
+  {
+    code: 'streak_master',
+    name: 'Αφοσιωμένος Βοηθός',
+    description: 'Διατήρησες καθημερινό σερί για 7 συνεχόμενες ημέρες.',
+    iconEmoji: '🔥',
+    rarity: BadgeRarity.RARE,
+    predicate: { kind: 'STREAK_REACHED', threshold: 7 },
+  },
+];
+
+const demoFeedingStations = [
+  {
+    name: 'Σταθμός Σίτισης — Πάρκο Ελευθερίας',
+    latitude: 37.9818,
+    longitude: 23.7533,
+    address: 'Βασιλίσσης Σοφίας, Αθήνα',
+    lastRefilled: daysAgo(1),
+    refillNotes: 'Γεμάτος με ξηρά τροφή και καθαρό νερό.',
+  },
+  {
+    name: 'Σταθμός Σίτισης — Νέα Παραλία',
+    latitude: 40.6120,
+    longitude: 22.9560,
+    address: 'Μεγάλου Αλεξάνδρου, Θεσσαλονίκη',
+    lastRefilled: daysAgo(2),
+    refillNotes: 'Χρειάζεται συμπλήρωμα σε κονσέρβες.',
+  },
+];
+
+const demoDonationCampaigns = [
+  {
+    title: 'Επείγουσα περίθαλψη & τροφή για 12 κουτάβια',
+    description: 'Βρέθηκαν εγκαταλελειμμένα σε κιβώτιο. Χρειάζονται εμβολιασμούς, αποπαρασίτωση και ειδική τροφή.',
+    targetAmount: 850,
+    raisedAmount: 520,
+    neededItems: 'Puppy starter food, Royal Canin Starter, πάνες, αλοιφές',
+    isEmergency: true,
+  },
+  {
+    title: 'Αναβάθμιση χώρων φιλοξενίας χειμώνα',
+    description: 'Μονώσεις και θερμαντικά σώματα για τα σπιτάκια του καταφυγίου ενόψει χαμηλών θερμοκρασιών.',
+    targetAmount: 1500,
+    raisedAmount: 980,
+    neededItems: 'Κουβέρτες, πλαστικές παλέτες, θερμαντικές λάμπες',
+    isEmergency: false,
+  },
+];
+
+const demoChallenges = [
+  {
+    title: 'Εβδομαδιαίος Φρουρός',
+    description: 'Κάνε 3 αναφορές για αδέσποτα ζώα στην περιοχή σου αυτή την εβδομάδα.',
+    karmaReward: 50,
+    targetCount: 3,
+    kind: 'REPORTS_CREATED',
+    expiresAt: daysFromNow(7),
+  },
+  {
+    title: 'Συνεχές Σερί 5 Ημερών',
+    description: 'Κάνε check-in στην εφαρμογή για 5 συνεχόμενες ημέρες.',
+    karmaReward: 30,
+    targetCount: 5,
+    kind: 'CHECK_IN_STREAK',
+    expiresAt: daysFromNow(14),
+  },
+];
+
+const demoRewards = [
+  {
+    title: 'Έκπτωση 15% σε Pet Shop',
+    description: 'Έκπτωση 15% σε αγορές τροφών και αξεσουάρ στο Pet City.',
+    partnerName: 'Pet City',
+    karmaCost: 100,
+    discountCode: 'PETMATCH15',
+    isActive: true,
+  },
+  {
+    title: 'Δωρεάν Σετ Περιποίησης',
+    description: 'Ένα πλήρες σετ βούρτσισμα και σαμπουάν για το κατοικίδιό σου.',
+    partnerName: 'Care4Pets',
+    karmaCost: 200,
+    discountCode: 'FREECARE2026',
+    isActive: true,
+  },
+];
+
+const demoCommunityPosts = [
+  {
+    authorEmail: 'giannis@petmatch.demo',
+    title: 'Ποια είναι τα καλύτερα πάρκα για σκύλους στην Αθήνα;',
+    body: 'Ψάχνω περιφραγμένους χώρους όπου μπορεί να τρέξει ελεύθερα ο σκύλος μου χωρίς κίνδυνο.',
+    category: 'ADVICE',
+    comment: {
+      authorEmail: 'volunteer@petmatch.demo',
+      body: 'Το πάρκο σκύλων στο Πάρκο Τρίτση είναι εξαιρετικό και πολύ μεγάλο!',
+    },
+  },
+  {
+    authorEmail: 'shelter@petmatch.demo',
+    title: 'Συμβουλές για τις πρώτες μέρες μετά την υιοθεσία',
+    body: 'Δώστε χρόνο στο νέο σας κατοικίδιο να προσαρμοστεί. Ο κανόνας 3-3-3 είναι καθοριστικός.',
+    category: 'VET_QA',
+    comment: {
+      authorEmail: 'sophia@petmatch.demo',
+      body: 'Πολύ χρήσιμες οδηγίες, βοήθησαν πάρα πολύ με τη δική μας υιοθεσία!',
+    },
+  },
+];
+
+const demoPetTag = {
+  ownerEmail: 'giannis@petmatch.demo',
+  code: 'TAG-PMC001',
+  petName: 'Ρεξ',
+  species: Species.DOG,
+  contactPhone: '6971234567',
+  medicalNotes: 'Αλλεργία στο κοτόπουλο. Πλήρως εμβολιασμένος.',
+};
+
+const demoPetEvent = {
+  organizerEmail: 'shelter@petmatch.demo',
+  title: 'Ημέρα Υιοθεσίας & Ενημέρωσης',
+  description: 'Γνωρίστε τα αδέσποτα ζωάκια μας που αναζητούν παντοτινό σπίτι.',
+  eventDate: daysFromNow(5),
+  location: 'Ζάππειο, Αθήνα',
+  latitude: 37.9715,
+  longitude: 23.7371,
+};
+
+const demoPetSitters = [
+  {
+    name: 'Μαρία Γεωργίου',
+    city: 'Αθήνα',
+    services: 'DOG_WALKING, PET_SITTING',
+    ratePerHour: 12.0,
+    phone: '6981112233',
+    rating: 4.9,
+  },
+  {
+    name: 'Νίκος Παπαδάκης',
+    city: 'Θεσσαλονίκη',
+    services: 'DOG_WALKING, FOSTER_CARE',
+    ratePerHour: 10.0,
+    phone: '6984445566',
+    rating: 4.8,
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Seed steps
 // ---------------------------------------------------------------------------
 
-/** Children first — `AdoptionApplication` has no ON DELETE action on its
- * `pet` / `applicant` relations, so those rows must be removed before the
- * pets or the applicants themselves can go. The audit + home-check rows
- * cascade along with their application. */
+/** Children first — clean up any existing demo rows idempotently. */
 async function deleteDemoRows() {
-  // Favorites are removed before the pets they point at, mirroring the
-  // "children first" ordering below.
+  const emails = demoEmailList();
+
   await prisma.favorite.deleteMany({
-    where: { user: { email: { in: demoEmailList() } } },
+    where: { user: { email: { in: emails } } },
+  });
+  await prisma.virtualAdoption.deleteMany({
+    where: { sponsor: { email: { in: emails } } },
+  });
+  await prisma.applicationHomeCheck.deleteMany({
+    where: { application: { applicant: { email: { in: emails } } } },
+  });
+  await prisma.applicationAudit.deleteMany({
+    where: { application: { applicant: { email: { in: emails } } } },
   });
   await prisma.adoptionApplication.deleteMany({
-    where: { applicant: { email: { in: demoEmailList() } } },
+    where: {
+      OR: [
+        { applicant: { email: { in: emails } } },
+        { pet: { shelter: { email: { in: emails } } } },
+      ],
+    },
+  });
+  await prisma.petMedicalRecord.deleteMany({
+    where: { pet: { shelter: { email: { in: emails } } } },
   });
   await prisma.petForAdoption.deleteMany({
-    where: { shelter: { email: { in: demoEmailList() } } },
+    where: { shelter: { email: { in: emails } } },
   });
-  // The user rows themselves survive (their ids stay stable across runs),
-  // but every row the seeder owns is removed explicitly.
   await prisma.notification.deleteMany({
-    where: { user: { email: { in: demoEmailList() } } },
+    where: { user: { email: { in: emails } } },
   });
   await prisma.userBadge.deleteMany({
-    where: { user: { email: { in: demoEmailList() } } },
+    where: { user: { email: { in: emails } } },
   });
-  // Stray reports are owned by their (demo) reporter, so they are removed
-  // explicitly — the seeder recreates them below. StrayReportUpdate
-  // rows cascade along with their report.
+  await prisma.strayReportUpdate.deleteMany({
+    where: { report: { reporter: { email: { in: emails } } } },
+  });
   await prisma.strayReport.deleteMany({
-    where: { reporter: { email: { in: demoEmailList() } } },
+    where: { reporter: { email: { in: emails } } },
   });
-  // The volunteer foster profile is re-created on every run.
   await prisma.fosterProfile.deleteMany({
-    where: { user: { email: { in: demoEmailList() } } },
+    where: { user: { email: { in: emails } } },
   });
+  await prisma.donationCampaign.deleteMany({
+    where: { shelter: { email: { in: emails } } },
+  });
+  await prisma.petTag.deleteMany({
+    where: { owner: { email: { in: emails } } },
+  });
+  await prisma.postComment.deleteMany({
+    where: { author: { email: { in: emails } } },
+  });
+  await prisma.communityPost.deleteMany({
+    where: { author: { email: { in: emails } } },
+  });
+  await prisma.petEvent.deleteMany({
+    where: { organizer: { email: { in: emails } } },
+  });
+
+  await prisma.feedingStation.deleteMany({});
+  await prisma.challenge.deleteMany({});
+  await prisma.karmaReward.deleteMany({});
+  await prisma.petSitter.deleteMany({});
 }
 
 /** Creates the demo users. Returns each account's id for later steps. */
@@ -525,7 +738,7 @@ async function createAdoptionData(
       );
     }
 
-    await prisma.adoptionApplication.create({
+    const app = await prisma.adoptionApplication.create({
       data: {
         petId,
         applicantId,
@@ -537,6 +750,17 @@ async function createAdoptionData(
         submittedAt: seed.submittedAt,
       },
     });
+
+    if (seed.state === AdoptionStatus.HOME_CHECK_SCHEDULED) {
+      await prisma.applicationHomeCheck.create({
+        data: {
+          applicationId: app.id,
+          scheduledAt: daysFromNow(2),
+          inspectorName: 'Δρ. Αργύρης Καρβουνά',
+          inspectorNotes: 'Προγραμματισμένος έλεγχος χώρου και αυλής.',
+        },
+      });
+    }
   }
 
   // Giannis marks Λυπάς Βίκος as a favorite — a different user can
@@ -588,6 +812,130 @@ async function createSupportingData(
   });
 }
 
+async function createPlatformFeaturesData(
+  usersByEmail: Map<string, { id: string }>,
+): Promise<void> {
+  // 1. Badges (upsert to ensure idempotent uniqueness)
+  for (const b of demoBadges) {
+    await prisma.badge.upsert({
+      where: { code: b.code },
+      update: {
+        name: b.name,
+        description: b.description,
+        iconEmoji: b.iconEmoji,
+        rarity: b.rarity,
+        predicate: b.predicate,
+      },
+      create: {
+        code: b.code,
+        name: b.name,
+        description: b.description,
+        iconEmoji: b.iconEmoji,
+        rarity: b.rarity,
+        predicate: b.predicate,
+      },
+    });
+  }
+
+  // 2. Feeding Stations
+  for (const station of demoFeedingStations) {
+    await prisma.feedingStation.create({ data: station });
+  }
+
+  // 3. Donation Campaigns
+  const shelterId = usersByEmail.get('shelter@petmatch.demo')?.id;
+  if (shelterId) {
+    for (const campaign of demoDonationCampaigns) {
+      await prisma.donationCampaign.create({
+        data: {
+          shelterId,
+          title: campaign.title,
+          description: campaign.description,
+          targetAmount: campaign.targetAmount,
+          raisedAmount: campaign.raisedAmount,
+          neededItems: campaign.neededItems,
+          isEmergency: campaign.isEmergency,
+        },
+      });
+    }
+  }
+
+  // 4. Challenges & Rewards
+  for (const challenge of demoChallenges) {
+    await prisma.challenge.create({ data: challenge });
+  }
+
+  for (const reward of demoRewards) {
+    await prisma.karmaReward.create({ data: reward });
+  }
+
+  // 5. Community Posts & Comments
+  for (const postSeed of demoCommunityPosts) {
+    const authorId = usersByEmail.get(postSeed.authorEmail)?.id;
+    if (!authorId) continue;
+    const post = await prisma.communityPost.create({
+      data: {
+        authorId,
+        title: postSeed.title,
+        body: postSeed.body,
+        category: postSeed.category,
+      },
+    });
+
+    const commentAuthorId = usersByEmail.get(postSeed.comment.authorEmail)?.id;
+    if (commentAuthorId) {
+      await prisma.postComment.create({
+        data: {
+          postId: post.id,
+          authorId: commentAuthorId,
+          body: postSeed.comment.body,
+        },
+      });
+    }
+  }
+
+  // 6. QR Pet Tag
+  const tagOwnerId = usersByEmail.get(demoPetTag.ownerEmail)?.id;
+  if (tagOwnerId) {
+    await prisma.petTag.create({
+      data: {
+        ownerId: tagOwnerId,
+        code: demoPetTag.code,
+        petName: demoPetTag.petName,
+        species: demoPetTag.species,
+        contactPhone: demoPetTag.contactPhone,
+        medicalNotes: demoPetTag.medicalNotes,
+      },
+    });
+  }
+
+  // 7. Pet Events & Sitters
+  const organizerId = usersByEmail.get(demoPetEvent.organizerEmail)?.id;
+  if (organizerId) {
+    await prisma.petEvent.create({
+      data: {
+        organizerId,
+        title: demoPetEvent.title,
+        description: demoPetEvent.description,
+        eventDate: demoPetEvent.eventDate,
+        location: demoPetEvent.location,
+        latitude: demoPetEvent.latitude,
+        longitude: demoPetEvent.longitude,
+      },
+    });
+  }
+
+  for (const sitter of demoPetSitters) {
+    await prisma.petSitter.create({ data: sitter });
+  }
+
+  // 8. Evaluate initial badges for demo users
+  const giannisId = usersByEmail.get('giannis@petmatch.demo')?.id;
+  if (giannisId) {
+    await evaluateBadges(giannisId);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -600,6 +948,7 @@ async function main(): Promise<void> {
   await createStrayReports(usersByEmail);
   await createAdoptionData(usersByEmail);
   await createSupportingData(usersByEmail);
+  await createPlatformFeaturesData(usersByEmail);
 
   console.log('\n🐾 Seed complete — demo accounts (password: Demo12345!):');
   for (const account of demoAccounts) {

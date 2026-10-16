@@ -72,6 +72,21 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
     }
   };
 
+  const appleLogin = async () => {
+    setBusy(true);
+    try {
+      await startAppleSso();
+    } catch (err) {
+      const resolved = resolveApiError(err, t);
+      toast.error({
+        title: resolved?.title ?? t('toast.serverError'),
+        body: resolved?.body ?? String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream }}>
       <KeyboardAvoidingView
@@ -263,7 +278,7 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
               </Pressable>
 
               <Pressable
-                onPress={ssoLogin}
+                onPress={appleLogin}
                 disabled={busy}
                 android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
                 style={{
@@ -276,7 +291,7 @@ export const LoginScreen = ({ onForgot }: { onForgot?: () => void }) => {
                 }}
               >
                 <Text style={{ marginRight: 8 }}>🍎</Text>
-                <Text style={{ color: Colors.white, fontWeight: '700' }}>Sign in with Apple</Text>
+                <Text style={{ color: Colors.white, fontWeight: '700' }}>{t('login.ssoApple')}</Text>
               </Pressable>
             </View>
           </View>

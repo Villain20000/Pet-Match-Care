@@ -1,37 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { RootStackScreenProps } from '@/navigation/types';
+import type { MedicalRecordDto } from '@/types';
 
-export const MedicalRecordsScreen = ({ route }: any) => {
+const RECORD_TYPES = [
+  { value: 'VACCINE', label: 'Εμβόλιο' },
+  { value: 'DEWORMING', label: 'Αποπαρασίτωση' },
+  { value: 'EXAMINATION', label: 'Εξέταση' },
+  { value: 'SURGERY', label: 'Εγχείρηση' },
+  { value: 'TREATMENT', label: 'Θεραπεία' },
+] as const;
+
+type RecordTypeValue = (typeof RECORD_TYPES)[number]['value'];
+
+export const MedicalRecordsScreen = ({ route }: RootStackScreenProps<'MedicalRecords'>) => {
   const { colors } = useThemeColors();
   const petId = route?.params?.petId || '';
   const petName = route?.params?.petName || 'Κατοικίδιο';
 
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<MedicalRecordDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recordType, setRecordType] = useState('VACCINE');
+  const [recordType, setRecordType] = useState<RecordTypeValue>('VACCINE');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [vetName, setVetName] = useState('');
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     if (!petId) return;
     try {
       setLoading(true);
-      const res = await api.get(`/pets/${petId}/medical-records`);
+      const res = await api.get<{ data: MedicalRecordDto[] }>(`/pets/${petId}/medical-records`);
       setRecords(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, [petId]);
 
   useEffect(() => {
     void fetchRecords();
-  }, [petId]);
+  }, [fetchRecords]);
 
   const handleAddRecord = async () => {
     if (!title) {
@@ -51,8 +63,8 @@ export const MedicalRecordsScreen = ({ route }: any) => {
       setDescription('');
       setVetName('');
       void fetchRecords();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 
@@ -69,6 +81,24 @@ export const MedicalRecordsScreen = ({ route }: any) => {
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.charcoal, marginBottom: 12 }}>
           Προσθήκη Ιατρικής Πράξης
         </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          {RECORD_TYPES.map((typeOption) => (
+            <TouchableOpacity
+              key={typeOption.value}
+              onPress={() => setRecordType(typeOption.value)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: recordType === typeOption.value ? colors.terracotta : colors.creamSoft,
+              }}
+            >
+              <Text style={{ color: recordType === typeOption.value ? colors.white : colors.charcoal, fontWeight: '600' }}>
+                {typeOption.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <TextInput
           placeholder="Τίτλος (π.χ. Εμβόλιο Λύσσας, Αποπαρασίτωση)"
           value={title}

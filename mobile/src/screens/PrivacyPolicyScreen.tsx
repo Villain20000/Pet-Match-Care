@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useThemeColors } from '@/services/theme';
+import type { RootStackScreenProps } from '@/navigation/types';
 
-export const PrivacyPolicyScreen = ({ navigation }: any) => {
+export const PrivacyPolicyScreen = ({ navigation }: RootStackScreenProps<'PrivacyPolicy'>) => {
   const { colors } = useThemeColors();
 
   return (

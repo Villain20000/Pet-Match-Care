@@ -18,7 +18,7 @@ import { sendEmail, templates } from '@/services/email.service';
 const to = process.argv.find((a) => a.startsWith('--to='))?.split('=')[1] ?? 'dev@example.com';
 
 (async () => {
-  console.log(`[test-email] MAIL_TRANSPORT=${process.env.MAIL_TRANSPORT ?? 'unset (will fail)'}`);
+  console.log(`[test-email] MAIL_TRANSPORT=${process.env.MAIL_TRANSPORT ?? 'unset (defaults to log)'}`);
 
   const reset = templates.passwordReset('demo-reset-token');
   const verify = templates.verifyEmail('demo-verify-token');

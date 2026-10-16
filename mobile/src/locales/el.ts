@@ -63,6 +63,7 @@ export const el = {
     forgotPassword: 'Ξέχασες τον κωδικό;',
     biometricUnlock: '👆 Ξεκλείδωμα με δακτυλικό αποτύπωμα',
     ssoGoogle: '🇬 Συνέχεια με Google',
+    ssoApple: '🍎 Συνέχεια με Apple',
     dividerLabel: 'Ή ΜΕ',
     ctaLogin: 'Είσοδος',
     ctaRegister: 'Δημιουργία λογαριασμού',

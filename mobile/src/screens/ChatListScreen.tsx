@@ -1,28 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
+import type { RootStackScreenProps } from '@/navigation/types';
+import type { ChatRoomDto } from '@/types';
 
-export const ChatListScreen = ({ navigation }: any) => {
+export const ChatListScreen = ({ navigation }: RootStackScreenProps<'ChatList'>) => {
   const { colors } = useThemeColors();
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<ChatRoomDto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/chat/rooms');
+      const res = await api.get<{ data: ChatRoomDto[] }>('/chat/rooms');
       setRooms(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchRooms();
-  }, []);
+  }, [fetchRooms]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream, padding: 16 }}>
@@ -42,7 +44,7 @@ export const ChatListScreen = ({ navigation }: any) => {
           return (
             <TouchableOpacity
               key={room.id}
-              onPress={() => navigation.navigate('ChatRoom', { roomId: room.id, topic: room.topic })}
+              onPress={() => navigation.navigate('ChatRoom', { roomId: room.id, topic: room.topic ?? undefined })}
               style={{
                 backgroundColor: colors.white,
                 padding: 14,

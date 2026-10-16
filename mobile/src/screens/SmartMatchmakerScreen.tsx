@@ -2,26 +2,29 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
+import type { MatchmakerResultDto } from '@/types';
+
+const HOURS_ALONE_OPTIONS = [0, 2, 4, 6, 8] as const;
 
 export const SmartMatchmakerScreen = () => {
   const { colors } = useThemeColors();
   const [lifestyle, setLifestyle] = useState<'ACTIVE' | 'CALM'>('ACTIVE');
   const [hoursAlone, setHoursAlone] = useState(4);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<MatchmakerResultDto | null>(null);
 
   const handleQuizSubmit = async () => {
     try {
       setLoading(true);
-      const res = await api.post('/matchmaker/quiz', {
+      const res = await api.post<{ data: MatchmakerResultDto }>('/matchmaker/quiz', {
         lifestyle,
         hoursAlone,
         space: 'APARTMENT',
         hasKids: true,
       });
       setResult(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
@@ -65,6 +68,28 @@ export const SmartMatchmakerScreen = () => {
           >
             <Text style={{ color: lifestyle === 'CALM' ? colors.white : colors.charcoal }}>🛋️ Ήρεμος</Text>
           </TouchableOpacity>
+        </View>
+
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.charcoal, marginBottom: 8 }}>
+          Ώρες μόνος/η στο σπίτι
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {HOURS_ALONE_OPTIONS.map((hoursOption) => (
+            <TouchableOpacity
+              key={hoursOption}
+              onPress={() => setHoursAlone(hoursOption)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: hoursAlone === hoursOption ? colors.terracotta : colors.creamSoft,
+              }}
+            >
+              <Text style={{ color: hoursAlone === hoursOption ? colors.white : colors.charcoal, fontWeight: '600' }}>
+                {hoursOption}h
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <TouchableOpacity

@@ -3,13 +3,14 @@ import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-nativ
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { PetTagDto } from '@/types';
 
 export const PetTagScreen = () => {
   const { colors } = useThemeColors();
   const [petName, setPetName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
-  const [tag, setTag] = useState<any>(null);
+  const [tag, setTag] = useState<PetTagDto | null>(null);
 
   const handleCreateTag = async () => {
     if (!petName || !contactPhone) {
@@ -17,11 +18,11 @@ export const PetTagScreen = () => {
       return;
     }
     try {
-      const res = await api.post('/pet-tags', { petName, contactPhone, medicalNotes });
+      const res = await api.post<{ data: PetTagDto }>('/pet-tags', { petName, contactPhone, medicalNotes });
       setTag(res.data.data);
       toast.success({ title: 'Επιτυχία', body: 'Το Ψηφιακό QR Tag δημιουργήθηκε' });
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 

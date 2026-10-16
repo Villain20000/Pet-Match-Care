@@ -62,6 +62,7 @@ export const en: Pane = {
     forgotPassword: 'Forgot your password?',
     biometricUnlock: '👆 Unlock with fingerprint',
     ssoGoogle: '🇬 Continue with Google',
+    ssoApple: '🍎 Continue with Apple',
     dividerLabel: 'OR',
     ctaLogin: 'Sign in',
     ctaRegister: 'Create account',

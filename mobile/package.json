@@ -11,7 +11,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
-    "test:toast:visual": "tsx scripts/test-toast-variants.tsx",
+    "test:toast:visual": "node --import tsx scripts/test-toast-variants.tsx",
     "build:android": "eas build -p android --profile preview",
     "build:android:prod": "eas build -p android --profile production",
     "postinstall": "node scripts/patch-web-deps.js"

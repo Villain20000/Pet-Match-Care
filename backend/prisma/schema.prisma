@@ -682,8 +682,9 @@ model PetTag {
   species     Species  @default(DOG)
   contactPhone String
   medicalNotes String?
-  isLost      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  isLost       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 

@@ -42,7 +42,7 @@ export const buildApp = (): Application => {
 
   const writeLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 30,
+    max: env.NODE_ENV === 'production' ? 30 : 1000,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'RATE_LIMITED', message: 'Πολλές αιτήσεις, δοκιμάστε ξανά σε λίγο' },
@@ -50,7 +50,7 @@ export const buildApp = (): Application => {
 
   const authLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 5,
+    max: env.NODE_ENV === 'production' ? 5 : 1000,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'RATE_LIMITED', message: 'Πάρα πολλές απόπειρες σύνδεσης' },
@@ -71,7 +71,7 @@ export const buildApp = (): Application => {
   app.use('/api', timelineRouter);
   app.use('/api/lost-pets', lostPetsRouter);
   app.use('/api/adoption-applications', adoptionApplicationsRouter);
-  app.use('/api', badgesRouter);
+  app.use('/api/badges', badgesRouter);
   app.use('/api/streaks', streaksRouter);
   app.use('/api/notifications', notificationsRouter);
   app.use('/api/favorites', favoritesRouter);

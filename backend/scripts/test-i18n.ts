@@ -27,6 +27,19 @@ import { resolveRequestLocale } from '@/middlewares/auth';
 type Lang = 'el' | 'en';
 type Failure = { name: string; got: unknown; want: unknown };
 
+// Codespaces/CI set HTTP(S)_PROXY with an empty NO_PROXY, which hijacks
+// loopback fetch() to the test server. Ensure 127.0.0.1/localhost always
+// bypass the proxy so the suite passes with default environment settings.
+const noProxyBypass = new Set(
+  (process.env.NO_PROXY ?? process.env.no_proxy ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+for (const host of ['127.0.0.1', 'localhost']) noProxyBypass.add(host);
+process.env.NO_PROXY = [...noProxyBypass].join(',');
+process.env.no_proxy = process.env.NO_PROXY;
+
 const failures: Failure[] = [];
 const assert = (name: string, cond: boolean, got: unknown, want: unknown) => {
   if (!cond) failures.push({ name, got, want });
@@ -366,7 +379,9 @@ const server = app.listen(0, async () => {
       const body = await r.json().catch(() => ({}));
       c.assert(r.status, body);
     } catch (e) {
-      assert(`fetch(${c.path}) succeeded`, false, e, null);
+      // Stringify — a raw Error has no enumerable props, so logging `e`
+      // directly reports the useless `{}` instead of the real cause.
+      assert(`fetch(${c.path}) succeeded`, false, e instanceof Error ? `${e.name}: ${e.message}` : e, null);
     }
   }
 

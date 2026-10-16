@@ -170,7 +170,7 @@ export const SettingsScreen = ({ contrast, setContrast, colorBlind, setColorBlin
             title="Πολιτική Απορρήτου & Όροι Χρήσης"
             subtitle="GDPR, Δικαιώματα & Κανόνες UGC"
             actionLabel="Προβολή"
-            onPress={() => navigation.navigate('PrivacyPolicy' as any)}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
           />
         </SettingsCard>
 

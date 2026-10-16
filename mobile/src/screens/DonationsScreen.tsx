@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
 import { toast } from '@/services/toast';
+import type { DonationCampaignDto } from '@/types';
 
 export const DonationsScreen = () => {
   const { colors } = useThemeColors();
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<DonationCampaignDto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/donations');
+      const res = await api.get<{ data: DonationCampaignDto[] }>('/donations');
       setCampaigns(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchCampaigns();
-  }, []);
+  }, [fetchCampaigns]);
 
   const handleDonate = async (campaignId: string) => {
     try {
       await api.post(`/donations/${campaignId}/donate`, { amount: 10 });
       toast.success({ title: 'Σας ευχαριστούμε!', body: 'Η δωρεά των 10€ καταχωρήθηκε' });
       void fetchCampaigns();
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / toast caller.
     }
   };
 

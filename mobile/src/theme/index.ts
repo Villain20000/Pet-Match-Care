@@ -150,8 +150,25 @@ export const POISON_RADIUS_KM = 2;
 // ---------------------------------------------------------------------------
 // Theme resolver (color-blind mode + high-contrast)
 // ---------------------------------------------------------------------------
-import type { ColorBlindPreset, ContrastMode } from '@/services/a11y';
-import { colorBlindShifts } from '@/services/a11y';
+export type ContrastMode = 'normal' | 'high';
+export type ColorBlindPreset = 'normal' | 'protanopia' | 'deuteranopia' | 'tritanopia';
+
+export const highContrast = {
+  background: '#000000',
+  card: '#0E0E0E',
+  text: '#FFFFFF',
+  muted: '#C8C8C8',
+  primary: '#FFB199', // was terracotta
+  success: '#A4F4C0', // was sage
+  danger: '#FF6A78', // was crimson
+};
+
+export const colorBlindShifts: Record<ColorBlindPreset, { crimson: string; sage: string }> = {
+  normal:       { crimson: '#E63946', sage: '#81B29A' },
+  protanopia:   { crimson: '#D67B00', sage: '#A88CC8' },
+  deuteranopia: { crimson: '#E07A00', sage: '#A88C66' },
+  tritanopia:   { crimson: '#D05A7A', sage: '#7FB29A' },
+} as const;
 
 export interface Theme {
   // `crimson` and `sage` are intentionally overridable per-preset; the

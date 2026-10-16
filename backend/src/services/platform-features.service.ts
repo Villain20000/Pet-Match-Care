@@ -19,13 +19,15 @@ export const platformFeaturesService = {
   },
 
   // QR Pet Tags
-  async createPetTag(ownerId: string, data: { petName: string; contactPhone: string; medicalNotes?: string }) {
+  async createPetTag(ownerId: string, data: { petName: string; contactPhone: string; medicalNotes?: string; species?: string }) {
     const code = 'TAG-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const validSpecies = data.species === 'CAT' || data.species === 'OTHER' ? data.species : 'DOG';
     return prisma.petTag.create({
       data: {
         code,
         ownerId,
         petName: data.petName,
+        species: validSpecies,
         contactPhone: data.contactPhone,
         medicalNotes: data.medicalNotes,
       },
@@ -47,6 +49,10 @@ export const platformFeaturesService = {
   },
 
   async refillFeedingStation(stationId: string, notes?: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stationId);
+    if (!isUuid) throw new HttpError(404, 'NOT_FOUND');
+    const station = await prisma.feedingStation.findUnique({ where: { id: stationId } });
+    if (!station) throw new HttpError(404, 'NOT_FOUND');
     return prisma.feedingStation.update({
       where: { id: stationId },
       data: {
@@ -80,6 +86,10 @@ export const platformFeaturesService = {
   },
 
   async addPostComment(postId: string, authorId: string, body: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(postId);
+    if (!isUuid) throw new HttpError(404, 'NOT_FOUND');
+    const post = await prisma.communityPost.findUnique({ where: { id: postId } });
+    if (!post) throw new HttpError(404, 'NOT_FOUND');
     return prisma.postComment.create({
       data: {
         postId,
@@ -91,6 +101,10 @@ export const platformFeaturesService = {
 
   // Virtual Adoption (Sponsorship)
   async sponsorPet(sponsorId: string, petId: string, monthlyAmount: number) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(petId);
+    if (!isUuid) throw new HttpError(404, 'NOT_FOUND');
+    const pet = await prisma.petForAdoption.findUnique({ where: { id: petId } });
+    if (!pet) throw new HttpError(404, 'NOT_FOUND');
     return prisma.virtualAdoption.create({
       data: {
         sponsorId,

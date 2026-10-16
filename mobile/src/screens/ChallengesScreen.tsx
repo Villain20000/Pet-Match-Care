@@ -1,28 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/services/theme';
 import { api } from '@/services/api';
+import type { ChallengeDto } from '@/types';
 
 export const ChallengesScreen = () => {
   const { colors } = useThemeColors();
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<ChallengeDto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchChallenges = async () => {
+  const fetchChallenges = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/challenges');
+      const res = await api.get<{ data: ChallengeDto[] }>('/challenges');
       setChallenges(res.data.data);
-    } catch (err) {
-      // Handled
+    } catch (_err) {
+      // Handled by the global error interceptor / empty-state UI.
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchChallenges();
-  }, []);
+  }, [fetchChallenges]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream, padding: 16 }}>
