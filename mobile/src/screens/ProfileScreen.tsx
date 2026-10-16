@@ -332,6 +332,56 @@ export const ProfileScreen = () => {
           </Pressable>
 
           <Pressable
+            onPress={() => navigation.navigate('SmartMatchmaker')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🤖</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Smart Pet Matchmaker (AI)</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('PetTag')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🏷️</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Ψηφιακό QR Pet Tag</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('FeedingStations')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🥣</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Σημεία Σίτισης Αδέσποτων</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('CommunityForum')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🗣️</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Κοινοτικό Forum & Q&A</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('Challenges')}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}
+          >
+            <Text style={{ fontSize: 20, marginRight: 12 }}>🎯</Text>
+            <Text style={{ flex: 1, fontWeight: '700', color: colors.charcoal }}>Challenges & Στόχοι</Text>
+            <Text style={{ color: colors.charcoalSoft }}>›</Text>
+          </Pressable>
+
+          <Pressable
             onPress={() => navigation.navigate('Donations')}
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
             style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: Radii.lg, padding: Spacing.md }, Shadows.hush]}

@@ -43,6 +43,12 @@ import { MedicalRecordsScreen } from '@/screens/MedicalRecordsScreen';
 import { ChatListScreen } from '@/screens/ChatListScreen';
 import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
 import { DonationsScreen } from '@/screens/DonationsScreen';
+import { PrivacyPolicyScreen } from '@/screens/PrivacyPolicyScreen';
+import { SmartMatchmakerScreen } from '@/screens/SmartMatchmakerScreen';
+import { PetTagScreen } from '@/screens/PetTagScreen';
+import { FeedingStationsScreen } from '@/screens/FeedingStationsScreen';
+import { CommunityForumScreen } from '@/screens/CommunityForumScreen';
+import { ChallengesScreen } from '@/screens/ChallengesScreen';
 import { useAuthStore } from '@/services/auth';
 import type { PetForAdoptionDto } from '@/types';
 
@@ -79,6 +85,12 @@ export type RootStackParamList = {
   ChatList: undefined;
   ChatRoom: { roomId: string; topic?: string };
   Donations: undefined;
+  PrivacyPolicy: undefined;
+  SmartMatchmaker: undefined;
+  PetTag: undefined;
+  FeedingStations: undefined;
+  CommunityForum: undefined;
+  Challenges: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -208,6 +220,12 @@ const StackFlow = ({ contrast, setContrast, colorBlind, setColorBlind }: Setting
     <Stack.Screen name="ChatList" component={ChatListScreen} options={{ title: 'Messages' }} />
     <Stack.Screen name="ChatRoom" component={ChatRoomScreen} options={{ title: 'Chat' }} />
     <Stack.Screen name="Donations" component={DonationsScreen} options={{ title: 'Donations' }} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Privacy Policy' }} />
+    <Stack.Screen name="SmartMatchmaker" component={SmartMatchmakerScreen} options={{ title: 'Smart Matchmaker' }} />
+    <Stack.Screen name="PetTag" component={PetTagScreen} options={{ title: 'QR Pet Tag' }} />
+    <Stack.Screen name="FeedingStations" component={FeedingStationsScreen} options={{ title: 'Feeding Stations' }} />
+    <Stack.Screen name="CommunityForum" component={CommunityForumScreen} options={{ title: 'Community Forum' }} />
+    <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Challenges' }} />
   </Stack.Navigator>
   );
 };
