@@ -14,11 +14,11 @@
  *
  * Run: npm run prisma:seed
  */
-import { hashPassword } from '@/utils/password';
-import { findClosestMunicipality } from '@/services/municipality.service';
-import { prisma } from '@/config/prisma';
-import { env } from '@/config/env';
-import { evaluateBadges } from '@/services/badges.engine';
+import { hashPassword } from '../src/utils/password';
+import { findClosestMunicipality } from '../src/services/municipality.service';
+import { prisma } from '../src/config/prisma';
+import { env } from '../src/config/env';
+import { evaluateBadges } from '../src/services/badges.engine';
 import {
   AuthProvider,
   AdoptionStatus,
@@ -122,7 +122,7 @@ interface StrayReportSeed {
   status: ReportStatus;
   assignedAt?: Date;
   resolvedAt?: Date;
-  expiresAt: Date;
+  expiresAt?: Date;
   /** Defaults to ~1 day ago. */
   createdAt?: Date;
 }
@@ -324,24 +324,6 @@ const demoNotificationSeeds: DemoNotificationSeed[] = [
     body: 'Το ζώο που αιτήσατε βρίσκεται πλέον στη λίστα υιοθεσιών.',
   },
 ];
-
-interface DemoFosterProfileSeed {
-  city: string;
-  maxPets: number;
-  preferredSpecies: Species;
-  hasGarden: boolean;
-  hasOtherPets: boolean;
-  notes?: string;
-}
-
-const demoFosterProfileSeed: DemoFosterProfileSeed = {
-  city: 'Θεσσαλονίκη',
-  maxPets: 2,
-  preferredSpecies: Species.DOG,
-  hasGarden: true,
-  hasOtherPets: false,
-  notes: 'Έχει μεγάλη αυλή και πρόσβαση σε ηλικωμένο οικόπεδο.',
-};
 
 /** Constants shared by every seed step. */
 const DEMO_FOSTER = {
