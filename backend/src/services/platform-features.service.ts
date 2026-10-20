@@ -159,4 +159,20 @@ export const platformFeaturesService = {
   async listRewards() {
     return prisma.karmaReward.findMany({ where: { isActive: true } });
   },
+
+  async claimReward(userId: string, rewardId: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rewardId);
+    if (!isUuid) throw new HttpError(404, 'NOT_FOUND');
+    const reward = await prisma.karmaReward.findUnique({ where: { id: rewardId } });
+    if (!reward || !reward.isActive) throw new HttpError(404, 'NOT_FOUND');
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.karmaPoints < reward.karmaCost) {
+      throw new HttpError(400, 'VALIDATION_ERROR');
+    }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { karmaPoints: { decrement: reward.karmaCost } },
+    });
+    return { success: true, discountCode: reward.discountCode, karmaRemaining: user.karmaPoints - reward.karmaCost };
+  },
 };

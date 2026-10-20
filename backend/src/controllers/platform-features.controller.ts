@@ -136,4 +136,13 @@ export const platformFeaturesController = {
       next(err);
     }
   },
+
+  async claimReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await platformFeaturesService.claimReward(req.user!.sub, req.params.rewardId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

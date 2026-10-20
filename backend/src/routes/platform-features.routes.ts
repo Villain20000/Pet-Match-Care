@@ -47,3 +47,4 @@ platformFeaturesRouter.get('/lost-pets/:lostPetId/sightings', asyncHandler(platf
 // Gamification Challenges & Marketplace
 platformFeaturesRouter.get('/challenges', asyncHandler(platformFeaturesController.listChallenges));
 platformFeaturesRouter.get('/rewards', asyncHandler(platformFeaturesController.listRewards));
+platformFeaturesRouter.post('/rewards/:rewardId/claim', requireAuth, asyncHandler(platformFeaturesController.claimReward));

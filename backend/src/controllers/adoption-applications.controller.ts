@@ -100,6 +100,19 @@ export const transition = async (req: Request, res: Response) => {
   return res.json({ success: true, application: updated });
 };
 
+export const withdrawApplication = async (req: Request, res: Response) => {
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
+  const id = z.string().uuid().parse(req.params.id);
+  const updated = await transitionApplicationWithNotification({
+    applicationId: id,
+    actorId: req.user!.sub,
+    actorRole: req.user!.role,
+    to: 'CLOSED',
+    note: 'Withdrawn by applicant',
+  });
+  return res.json({ success: true, application: updated });
+};
+
 export const scheduleHomeCheck = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   if (req.user!.role !== 'SHELTER_ADMIN' && req.user!.role !== 'PLATFORM_ADMIN') {
