@@ -8,6 +8,7 @@ import {
   listMine,
   scheduleHomeCheck,
   transition,
+  withdrawApplication,
 } from '@/controllers/adoption-applications.controller';
 
 export const adoptionApplicationsRouter = Router();
@@ -37,6 +38,7 @@ adoptionApplicationsRouter.post(
   asyncHandler(createOrUpdateDraft),
 );
 adoptionApplicationsRouter.post('/:id/transition', requireAuth, asyncHandler(transition));
+adoptionApplicationsRouter.post('/:id/withdraw', requireAuth, asyncHandler(withdrawApplication));
 adoptionApplicationsRouter.post(
   '/:id/home-check',
   requireAuth,

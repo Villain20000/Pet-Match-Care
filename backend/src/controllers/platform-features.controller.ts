@@ -136,4 +136,121 @@ export const platformFeaturesController = {
       next(err);
     }
   },
+
+  async claimReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await platformFeaturesService.claimReward(req.user!.sub, req.params.rewardId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listShelterInventory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const items = await platformFeaturesService.listShelterInventory(req.user!.sub);
+      res.json({ success: true, data: items });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addShelterInventoryItem(req: Request, res: Response, next: NextFunction) {
+    try {
+      const item = await platformFeaturesService.addShelterInventoryItem(req.user!.sub, req.body);
+      res.status(201).json({ success: true, data: item });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listVolunteerShifts(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const shifts = await platformFeaturesService.listVolunteerShifts();
+      res.json({ success: true, data: shifts });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createVolunteerShift(req: Request, res: Response, next: NextFunction) {
+    try {
+      const shift = await platformFeaturesService.createVolunteerShift(req.user!.sub, req.body);
+      res.status(201).json({ success: true, data: shift });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listPetPlaydates(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const playdates = await platformFeaturesService.listPetPlaydates();
+      res.json({ success: true, data: playdates });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createPetPlaydate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const playdate = await platformFeaturesService.createPetPlaydate(req.user!.sub, req.body);
+      res.status(201).json({ success: true, data: playdate });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addPetWeightLog(req: Request, res: Response, next: NextFunction) {
+    try {
+      const log = await platformFeaturesService.addPetWeightLog(req.params.petTagId, req.body.weightKg);
+      res.status(201).json({ success: true, data: log });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getPetWeightLogs(req: Request, res: Response, next: NextFunction) {
+    try {
+      const logs = await platformFeaturesService.getPetWeightLogs(req.params.petTagId);
+      res.json({ success: true, data: logs });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addFleaReminder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const reminder = await platformFeaturesService.addFleaReminder(req.params.petTagId, req.body);
+      res.status(201).json({ success: true, data: reminder });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listFleaReminders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const reminders = await platformFeaturesService.listFleaReminders(req.params.petTagId);
+      res.json({ success: true, data: reminders });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async signAdoptionContract(req: Request, res: Response, next: NextFunction) {
+    try {
+      const contract = await platformFeaturesService.signAdoptionContract(req.params.applicationId, req.body.signedName);
+      res.status(201).json({ success: true, data: contract });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getImpactAnalytics(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const stats = await platformFeaturesService.getImpactAnalytics();
+      res.json({ success: true, data: stats });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
