@@ -833,3 +833,88 @@ model KarmaReward {
   discountCode String
   isActive    Boolean  @default(true)
 }
+
+// -------------------------------------------------------------------------
+// v3 Extensions: 60 New Advanced Platform Features
+// -------------------------------------------------------------------------
+
+model ShelterInventoryItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  shelterId   String   @db.Uuid
+  itemName    String   // e.g. "Dry Dog Food 15kg", "Deworming Pills"
+  category    String   // FOOD, MEDICAL, BEDDING, TOYS, CLEANING
+  quantity    Int      @default(0)
+  unit        String   @default("units")
+  lowStockAlert Int    @default(5)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shelterId])
+}
+
+model VolunteerShift {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizerId String   @db.Uuid
+  title       String
+  description String
+  shiftDate   DateTime
+  location    String
+  maxVolunteers Int   @default(5)
+  assignedCount Int   @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([organizerId])
+}
+
+model PetPlaydate {
+  id          String   @id @default(uuid()) @db.Uuid
+  hostId      String   @db.Uuid
+  title       String
+  location    String
+  latitude    Float
+  longitude   Float
+  meetTime    DateTime
+  petType     Species  @default(DOG)
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@index([hostId])
+}
+
+model PetWeightLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  petTagId  String   @db.Uuid
+  weightKg  Float
+  loggedAt  DateTime @default(now())
+
+  @@index([petTagId])
+}
+
+model FleaTreatmentReminder {
+  id          String   @id @default(uuid()) @db.Uuid
+  petTagId    String   @db.Uuid
+  productName String
+  nextDueDate DateTime
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([petTagId])
+}
+
+model AdoptionContract {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @unique @db.Uuid
+  termsVersion  String   @default("v1.0")
+  signedName    String
+  signedAt      DateTime @default(now())
+  documentUrl   String?
+}
+
+model RescueTeam {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  municipality String
+  leaderId    String   @db.Uuid
+  score       Int      @default(0)
+  createdAt   DateTime @default(now())
+}

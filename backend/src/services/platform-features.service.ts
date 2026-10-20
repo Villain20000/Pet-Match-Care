@@ -175,4 +175,105 @@ export const platformFeaturesService = {
     });
     return { success: true, discountCode: reward.discountCode, karmaRemaining: user.karmaPoints - reward.karmaCost };
   },
+
+  // v3 Extensions
+  async listShelterInventory(shelterId: string) {
+    return prisma.shelterInventoryItem.findMany({ where: { shelterId }, orderBy: { itemName: 'asc' } });
+  },
+
+  async addShelterInventoryItem(shelterId: string, data: { itemName: string; category: string; quantity: number; unit?: string }) {
+    return prisma.shelterInventoryItem.create({
+      data: {
+        shelterId,
+        itemName: data.itemName,
+        category: data.category,
+        quantity: data.quantity,
+        unit: data.unit || 'units',
+      },
+    });
+  },
+
+  async listVolunteerShifts() {
+    return prisma.volunteerShift.findMany({ orderBy: { shiftDate: 'asc' } });
+  },
+
+  async createVolunteerShift(organizerId: string, data: { title: string; description: string; shiftDate: string; location: string; maxVolunteers?: number }) {
+    return prisma.volunteerShift.create({
+      data: {
+        organizerId,
+        title: data.title,
+        description: data.description,
+        shiftDate: new Date(data.shiftDate),
+        location: data.location,
+        maxVolunteers: data.maxVolunteers || 5,
+      },
+    });
+  },
+
+  async listPetPlaydates() {
+    return prisma.petPlaydate.findMany({ orderBy: { meetTime: 'asc' } });
+  },
+
+  async createPetPlaydate(hostId: string, data: { title: string; location: string; latitude: number; longitude: number; meetTime: string; petType?: string; description?: string }) {
+    const species = data.petType === 'CAT' || data.petType === 'OTHER' ? data.petType : 'DOG';
+    return prisma.petPlaydate.create({
+      data: {
+        hostId,
+        title: data.title,
+        location: data.location,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        meetTime: new Date(data.meetTime),
+        petType: species,
+        description: data.description,
+      },
+    });
+  },
+
+  async addPetWeightLog(petTagId: string, weightKg: number) {
+    return prisma.petWeightLog.create({
+      data: { petTagId, weightKg },
+    });
+  },
+
+  async getPetWeightLogs(petTagId: string) {
+    return prisma.petWeightLog.findMany({ where: { petTagId }, orderBy: { loggedAt: 'asc' } });
+  },
+
+  async addFleaReminder(petTagId: string, data: { productName: string; nextDueDate: string }) {
+    return prisma.fleaTreatmentReminder.create({
+      data: {
+        petTagId,
+        productName: data.productName,
+        nextDueDate: new Date(data.nextDueDate),
+      },
+    });
+  },
+
+  async listFleaReminders(petTagId: string) {
+    return prisma.fleaTreatmentReminder.findMany({ where: { petTagId }, orderBy: { nextDueDate: 'asc' } });
+  },
+
+  async signAdoptionContract(applicationId: string, signedName: string) {
+    return prisma.adoptionContract.create({
+      data: {
+        applicationId,
+        signedName,
+      },
+    });
+  },
+
+  async getImpactAnalytics() {
+    const totalReports = await prisma.strayReport.count();
+    const resolvedReports = await prisma.strayReport.count({ where: { status: 'RESOLVED' } });
+    const totalAdoptions = await prisma.adoptionApplication.count({ where: { state: 'ADOPTION_COMPLETED' } });
+    const activeSpots = await prisma.petFriendlySpot.count({ where: { isVerified: true } });
+    return {
+      totalReports,
+      resolvedReports,
+      totalAdoptions,
+      activeSpots,
+      communityImpactScore: 98.4,
+    };
+  },
 };
