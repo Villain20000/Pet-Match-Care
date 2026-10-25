@@ -140,6 +140,7 @@ export const scheduleHomeCheck = async (req: Request, res: Response) => {
 };
 
 export const getApplication = async (req: Request, res: Response) => {
+  if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
   const id = z.string().uuid().parse(req.params.id);
   const app = await prisma.adoptionApplication.findUnique({
     where: { id },
@@ -149,7 +150,20 @@ export const getApplication = async (req: Request, res: Response) => {
       pet: { select: { id: true, name: true, imageUrl: true, species: true } },
     },
   });
-  if (!app) throwHttp(req, 404, 'NOT_FOUND');
+  if (!app) {
+    return throwHttp(req, 404, 'NOT_FOUND');
+  }
+
+  // Object-level authorization (IDOR protection):
+  // User must be applicant, shelter owner of the application, or platform admin
+  const isApplicant = app.applicantId === req.user!.sub;
+  const isShelterOwner = app.shelterId === req.user!.sub;
+  const isPlatformAdmin = req.user!.role === 'PLATFORM_ADMIN';
+
+  if (!isApplicant && !isShelterOwner && !isPlatformAdmin) {
+    return throwHttp(req, 403, 'FORBIDDEN');
+  }
+
   return res.json({ application: app });
 };
 

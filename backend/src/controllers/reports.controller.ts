@@ -4,7 +4,7 @@ import { Prisma, ReportCondition, ReportStatus } from '@prisma/client';
 import { prisma } from '@/config/prisma';
 import { throwHttp } from "@/utils/http";
 import { findClosestMunicipality } from '@/services/municipality.service';
-import { boundingBox, haversineKm } from '@/services/geo.service';
+import { boundingBox, haversineKm, fuzzCoordinates } from '@/services/geo.service';
 
 const KARMA_PER_REPORT = 10;
 
@@ -23,21 +23,36 @@ const NearbyQuerySchema = z.object({
   radius: z.coerce.number().positive().max(50).default(5), // km
 });
 
-// Accept the full Prisma row (which includes nullable resolvedAt / expiresAt
-// that aren't in the wire format) — we destructure the fields we expose.
-const serializeReport = (r: Prisma.StrayReportGetPayload<{}>) => ({
-  id: r.id,
-  reporterId: r.reporterId,
-  imageUrl: r.imageUrl,
-  condition: r.condition,
-  description: r.description,
-  latitude: r.latitude,
-  longitude: r.longitude,
-  addressHint: r.addressHint,
-  status: r.status,
-  assignedMunicipality: r.assignedMunicipality,
-  createdAt: r.createdAt.toISOString(),
-});
+// Accept the full Prisma row and fuzz coordinates unless user is authorized
+const serializeReport = (
+  r: Prisma.StrayReportGetPayload<{}>,
+  user?: { sub: string; role: string },
+) => {
+  const isAuthorizedWorker =
+    user?.role === 'MUNICIPAL_WORKER' ||
+    user?.role === 'SHELTER_ADMIN' ||
+    user?.role === 'PLATFORM_ADMIN' ||
+    user?.sub === r.reporterId;
+
+  const coords = isAuthorizedWorker
+    ? { latitude: r.latitude, longitude: r.longitude }
+    : fuzzCoordinates(r.latitude, r.longitude, r.id);
+
+  return {
+    id: r.id,
+    reporterId: r.reporterId,
+    imageUrl: r.imageUrl,
+    condition: r.condition,
+    description: r.description,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    isFuzzed: !isAuthorizedWorker,
+    addressHint: r.addressHint,
+    status: r.status,
+    assignedMunicipality: r.assignedMunicipality,
+    createdAt: r.createdAt.toISOString(),
+  };
+};
 
 export const createReport = async (req: Request, res: Response) => {
   if (!req.user) throwHttp(req, 401, 'UNAUTHORIZED');
@@ -69,7 +84,7 @@ export const createReport = async (req: Request, res: Response) => {
 
   return res.status(201).json({
     success: true,
-    report: serializeReport(report),
+    report: serializeReport(report, req.user),
     routedTo: municipality,
     rewarded: { karma: KARMA_PER_REPORT },
   });
@@ -101,7 +116,7 @@ export const listNearbyReports = async (req: Request, res: Response) => {
   return res.json({
     count: enriched.length,
     radiusKm: radius,
-    reports: enriched.map(serializeReport),
+    reports: enriched.map((r) => serializeReport(r, req.user)),
   });
 };
 
@@ -109,7 +124,7 @@ export const getReportById = async (req: Request, res: Response) => {
   const id = z.string().uuid().parse(req.params.id);
   const report = await prisma.strayReport.findUnique({ where: { id } });
   if (!report) throwHttp(req, 404, 'NOT_FOUND');
-  return res.json({ report: serializeReport(report!) });
+  return res.json({ report: serializeReport(report!, req.user) });
 };
 
 // Worker-only: mark a report IN_PROGRESS or RESOLVED.
@@ -127,5 +142,5 @@ export const updateReportStatus = async (req: Request, res: Response) => {
     },
   });
 
-  return res.json({ success: true, report: serializeReport(report) });
+  return res.json({ success: true, report: serializeReport(report, req.user) });
 };

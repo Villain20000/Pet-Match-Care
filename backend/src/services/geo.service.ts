@@ -40,3 +40,35 @@ export const boundingBox = (
     maxLng: lng + lngDelta,
   };
 };
+
+/**
+ * Fuzz GPS coordinates by a deterministic/pseudo-random offset (~150m to ~250m)
+ * to protect citizen and animal location privacy for public feeds.
+ */
+export const fuzzCoordinates = (
+  lat: number,
+  lng: number,
+  seedId: string = 'default',
+): { latitude: number; longitude: number } => {
+  // Simple hash from seedId to keep fuzzing deterministic for the same record
+  let hash = 0;
+  for (let i = 0; i < seedId.length; i++) {
+    hash = (hash << 5) - hash + seedId.charCodeAt(i);
+    hash |= 0;
+  }
+  const normalizedHash = Math.abs(hash) / 2147483647;
+
+  // Offset radius between 150m (0.15km) and 250m (0.25km)
+  const offsetKm = 0.15 + normalizedHash * 0.10;
+  const angle = normalizedHash * 2 * Math.PI;
+
+  const latOffset = (offsetKm / 111) * Math.cos(angle);
+  const lngOffset =
+    (offsetKm / (111 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)))) *
+    Math.sin(angle);
+
+  return {
+    latitude: Number((lat + latOffset).toFixed(6)),
+    longitude: Number((lng + lngOffset).toFixed(6)),
+  };
+};
