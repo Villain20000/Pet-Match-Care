@@ -19,7 +19,8 @@ import { reportsApi } from '@/services/reports';
 import { getCurrentLocation, type ResolvedLocation } from '@/services/location';
 import { useAuthStore } from '@/services/auth';
 import { useT } from '@/services/i18n';
-import { toast, resolveApiError } from '@/services/toast';
+import { toast } from '@/services/toast';
+import { useOfflineReportStore } from '@/services/offline-reports';
 import type { StrayReportDto } from '@/types';
 
 export const ReportScreen = () => {
@@ -118,13 +119,21 @@ export const ReportScreen = () => {
       setImage(null);
       setCondition(null);
       setDescription('');
-    } catch (err) {
+    } catch (_err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const resolved = resolveApiError(err, t);
-      toast.error({
-        title: resolved?.title ?? t('toast.serverError'),
-        body: resolved?.body ?? String(err),
+      // Save offline if network failure
+      const enqueue = useOfflineReportStore.getState().enqueueReport;
+      await enqueue({
+        imageUrl: image.uri,
+        condition,
+        description: description.trim() || undefined,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        addressHint: location.addressHint,
       });
+      setImage(null);
+      setCondition(null);
+      setDescription('');
     } finally {
       setSubmitting(false);
     }

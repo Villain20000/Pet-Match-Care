@@ -24,6 +24,7 @@ enum Role {
   MUNICIPAL_WORKER
   SHELTER_ADMIN
   PLATFORM_ADMIN
+  VET
 }
 
 enum AuthProvider {
@@ -575,15 +576,18 @@ model FosterProfile {
 // -------------------------------------------------------------------------
 
 model PetMedicalRecord {
-  id          String   @id @default(uuid()) @db.Uuid
-  petId       String   @db.Uuid
-  recordType  String   // e.g. VACCINE, DEWORMING, SURGERY, EXAMINATION, TREATMENT
-  title       String
-  description String?
-  performedAt DateTime
-  vetName     String?
-  nextDueDate DateTime?
-  createdAt   DateTime @default(now())
+  id               String   @id @default(uuid()) @db.Uuid
+  petId            String   @db.Uuid
+  recordType       String   // e.g. VACCINE, DEWORMING, SURGERY, EXAMINATION, TREATMENT, PRESCRIPTION
+  title            String
+  description      String?
+  performedAt      DateTime
+  vetName          String?
+  vetLicenseNumber String?
+  isPrescription   Boolean  @default(false)
+  digitalSignature String?  // Cryptographic HMAC/SHA256 signature hash of record content
+  nextDueDate      DateTime?
+  createdAt        DateTime @default(now())
 
   pet PetForAdoption @relation(fields: [petId], references: [id], onDelete: Cascade)
 

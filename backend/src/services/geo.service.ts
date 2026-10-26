@@ -42,6 +42,26 @@ export const boundingBox = (
 };
 
 /**
+ * Builds PostGIS SQL fragment for ST_DWithin spatial queries.
+ * Converts radius in km to meters for geography(Point, 4326).
+ */
+export const buildPostGISSpatialQuery = (
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): { querySql: string; radiusMeters: number } => {
+  const radiusMeters = radiusKm * 1000;
+  return {
+    querySql: `ST_DWithin(
+      ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+      ${radiusMeters}
+    )`,
+    radiusMeters,
+  };
+};
+
+/**
  * Fuzz GPS coordinates by a deterministic/pseudo-random offset (~150m to ~250m)
  * to protect citizen and animal location privacy for public feeds.
  */

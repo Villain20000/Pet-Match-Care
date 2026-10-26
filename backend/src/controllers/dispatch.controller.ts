@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { RescueDispatchStatus } from '@prisma/client';
-import { throwHttp } from '@/middlewares/error';
+import { throwHttp } from '@/utils/http';
 import {
   assignOrUpdateDispatch,
   getDispatchByReportId,

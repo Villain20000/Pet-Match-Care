@@ -3,11 +3,17 @@ import { env } from '@/config/env';
 import { prisma } from '@/config/prisma';
 
 const app = buildApp();
+import { evaluateSlaStatuses } from '@/services/sla.service';
+
 const server = app.listen(env.PORT, () => {
    
   console.log(
     `🐾 Pet-Match & Care API listening on http://localhost:${env.PORT}  [${env.NODE_ENV}]`,
   );
+  // Periodic SLA check interval (every 15 mins)
+  setInterval(() => {
+    evaluateSlaStatuses().catch((err) => console.error('[SLA Evaluator]', err));
+  }, 15 * 60 * 1000).unref();
 });
 
 const shutdown = async (signal: string) => {

@@ -110,7 +110,11 @@ export const medicalRecordsController = {
 
   async addRecord(req: Request, res: Response, next: NextFunction) {
     try {
-      const record = await medicalRecordsService.addRecord(req.user!.sub, req.params.petId, req.body);
+      const record = await medicalRecordsService.addRecord(
+        { userId: req.user!.sub, role: req.user!.role },
+        req.params.petId,
+        req.body,
+      );
       res.status(201).json({ success: true, data: record });
     } catch (err) {
       next(err);

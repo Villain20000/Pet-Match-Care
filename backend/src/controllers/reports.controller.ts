@@ -6,6 +6,7 @@ import { throwHttp } from "@/utils/http";
 import { findClosestMunicipality } from '@/services/municipality.service';
 import { boundingBox, haversineKm, fuzzCoordinates } from '@/services/geo.service';
 import { calculateSlaTarget } from '@/services/sla.service';
+import { checkForDuplicateStrayReport } from '@/services/image-similarity.service';
 
 const KARMA_PER_REPORT = 10;
 
@@ -60,6 +61,14 @@ export const createReport = async (req: Request, res: Response) => {
 
   const input = CreateReportSchema.parse(req.body);
 
+  // AI visual duplicate check within 100m
+  const duplicateCheck = await checkForDuplicateStrayReport({
+    imageUrl: input.imageUrl,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    description: input.description,
+  });
+
   // Auto-assign to closest Greek municipality.
   const municipality = findClosestMunicipality(input.latitude, input.longitude);
 
@@ -93,6 +102,7 @@ export const createReport = async (req: Request, res: Response) => {
     report: serializeReport(report, req.user),
     routedTo: municipality,
     rewarded: { karma: KARMA_PER_REPORT },
+    duplicateWarning: duplicateCheck.isDuplicate ? duplicateCheck : undefined,
   });
 };
 
