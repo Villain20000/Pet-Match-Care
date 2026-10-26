@@ -170,6 +170,7 @@ model User {
   eventsCreated          PetEvent[]
   sightings              LostPetSighting[]
   rescueDispatches       RescueDispatch[]     @relation("DispatchedRescuer")
+  organizationMemberships OrganizationMember[]
 
   @@index([homeLatitude, homeLongitude])
   @@index([pushToken])
@@ -851,6 +852,70 @@ model KarmaReward {
   karmaCost   Int
   discountCode String
   isActive    Boolean  @default(true)
+}
+
+// -------------------------------------------------------------------------
+// Multi-Organization Permissions & Memberships
+// -------------------------------------------------------------------------
+
+enum OrgType {
+  SHELTER
+  MUNICIPALITY
+  NGO
+  VET_CLINIC
+}
+
+enum OrgRole {
+  OWNER
+  MANAGER
+  MEMBER
+  VOLUNTEER
+}
+
+model Organization {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  type        OrgType  @default(NGO)
+  city        String?
+  vatNumber   String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     OrganizationMember[]
+
+  @@index([type, city])
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       @db.Uuid
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId], name: "organizationId_userId")
+  @@index([userId])
+}
+
+// -------------------------------------------------------------------------
+// Open Animal Welfare API Keys & Gateway
+// -------------------------------------------------------------------------
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  keyHash     String    @unique
+  name        String
+  ownerEmail  String
+  rateLimit   Int       @default(1000) // requests per day
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([ownerEmail])
 }
 
 // -------------------------------------------------------------------------

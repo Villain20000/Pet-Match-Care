@@ -121,19 +121,21 @@ export const ReportScreen = () => {
       setDescription('');
     } catch (_err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      // Save offline if network failure
-      const enqueue = useOfflineReportStore.getState().enqueueReport;
-      await enqueue({
-        imageUrl: image.uri,
-        condition,
-        description: description.trim() || undefined,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        addressHint: location.addressHint,
-      });
-      setImage(null);
-      setCondition(null);
-      setDescription('');
+      // Save offline if network failure and location is resolved
+      if (location) {
+        const enqueue = useOfflineReportStore.getState().enqueueReport;
+        await enqueue({
+          imageUrl: image.uri,
+          condition,
+          description: description.trim() || undefined,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          addressHint: location.addressHint,
+        });
+        setImage(null);
+        setCondition(null);
+        setDescription('');
+      }
     } finally {
       setSubmitting(false);
     }
