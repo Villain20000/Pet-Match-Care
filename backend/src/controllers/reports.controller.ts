@@ -5,6 +5,7 @@ import { prisma } from '@/config/prisma';
 import { throwHttp } from "@/utils/http";
 import { findClosestMunicipality } from '@/services/municipality.service';
 import { boundingBox, haversineKm, fuzzCoordinates } from '@/services/geo.service';
+import { calculateSlaTarget } from '@/services/sla.service';
 
 const KARMA_PER_REPORT = 10;
 
@@ -62,6 +63,9 @@ export const createReport = async (req: Request, res: Response) => {
   // Auto-assign to closest Greek municipality.
   const municipality = findClosestMunicipality(input.latitude, input.longitude);
 
+  const now = new Date();
+  const slaTargetAt = calculateSlaTarget(input.condition, now);
+
   const report = await prisma.strayReport.create({
     data: {
       reporterId: req.user!.sub,
@@ -72,7 +76,9 @@ export const createReport = async (req: Request, res: Response) => {
       longitude: input.longitude,
       addressHint: input.addressHint ?? null,
       assignedMunicipality: municipality.name,
-      assignedAt: new Date(),
+      assignedAt: now,
+      slaTargetAt,
+      slaStatus: 'ON_TIME',
       status: ReportStatus.OPEN,
     },
   });

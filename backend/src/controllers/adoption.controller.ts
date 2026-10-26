@@ -17,6 +17,7 @@ const CreatePetSchema = z.object({
   microchipNumber: z.string().max(40).optional(),
   isVaccinated: z.boolean().default(false),
   isSterilized: z.boolean().default(false),
+  isQuarantined: z.boolean().default(false),
   healthNotes: z.string().max(2000).optional(),
 });
 
@@ -39,12 +40,14 @@ export const createPet = async (req: Request, res: Response) => {
 export const listPets = async (req: Request, res: Response) => {
   const species = req.query.species ? z.nativeEnum(Species).parse(req.query.species) : undefined;
   const urgent = req.query.urgent === 'true';
+  const includeQuarantine = req.query.quarantine === 'true';
   const q = (req.query.q as string | undefined)?.trim();
 
   const pets = await prisma.petForAdoption.findMany({
     where: {
       status: AdoptionStatus.AVAILABLE,
       species,
+      isQuarantined: includeQuarantine ? undefined : false,
       ...(urgent ? { isUrgent: true } : {}),
       ...(q
         ? {

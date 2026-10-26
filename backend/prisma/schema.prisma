@@ -103,6 +103,16 @@ enum PoisonSeverity {
   CRITICAL
 }
 
+enum RescueDispatchStatus {
+  UNASSIGNED
+  DISPATCHED
+  EN_ROUTE
+  ON_SCENE
+  RESOLVED
+  TRANSPORTED_TO_VET
+  CANCELLED
+}
+
 // -------------------------------------------------------------------------
 // Identity
 // -------------------------------------------------------------------------
@@ -158,6 +168,7 @@ model User {
   virtualAdoptions       VirtualAdoption[]
   eventsCreated          PetEvent[]
   sightings              LostPetSighting[]
+  rescueDispatches       RescueDispatch[]     @relation("DispatchedRescuer")
 
   @@index([homeLatitude, homeLongitude])
   @@index([pushToken])
@@ -241,6 +252,8 @@ model StrayReport {
   status               ReportStatus    @default(OPEN)
   assignedMunicipality String
   assignedAt           DateTime?
+  slaTargetAt          DateTime?
+  slaStatus            String?         // ON_TIME, SLA_WARNING, SLA_BREACHED
   expiresAt            DateTime?
   resolvedAt           DateTime?
   createdAt            DateTime        @default(now())
@@ -248,6 +261,7 @@ model StrayReport {
 
   reporter            User                  @relation(fields: [reporterId], references: [id])
   updates             StrayReportUpdate[]
+  dispatch            RescueDispatch?
 
   @@index([status])
   @@index([assignedMunicipality])
@@ -319,6 +333,7 @@ model PetForAdoption {
   microchipNumber String?
   isVaccinated    Boolean         @default(false)
   isSterilized    Boolean         @default(false)
+  isQuarantined   Boolean         @default(false)
   healthNotes     String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -832,4 +847,42 @@ model KarmaReward {
   karmaCost   Int
   discountCode String
   isActive    Boolean  @default(true)
+}
+
+// -------------------------------------------------------------------------
+// Rescue Dispatch Console & Field Volunteer Operations
+// -------------------------------------------------------------------------
+
+model RescueDispatch {
+  id           String               @id @default(uuid()) @db.Uuid
+  reportId     String               @unique @db.Uuid
+  rescuerId    String?              @db.Uuid
+  status       RescueDispatchStatus @default(UNASSIGNED)
+  notes        String?
+  dispatchedAt DateTime?
+  arrivedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  report  StrayReport         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  rescuer User?               @relation("DispatchedRescuer", fields: [rescuerId], references: [id])
+  logs    RescueDispatchLog[]
+
+  @@index([status])
+  @@index([rescuerId])
+}
+
+model RescueDispatchLog {
+  id         String               @id @default(uuid()) @db.Uuid
+  dispatchId String               @db.Uuid
+  actorId    String               @db.Uuid
+  fromStatus RescueDispatchStatus
+  toStatus   RescueDispatchStatus
+  note       String?
+  createdAt  DateTime             @default(now())
+
+  dispatch RescueDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+
+  @@index([dispatchId, createdAt])
 }
