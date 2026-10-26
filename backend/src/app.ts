@@ -22,6 +22,8 @@ import { extraFeaturesRouter } from '@/routes/extra-features.routes';
 import { ugcRouter } from '@/routes/ugc.routes';
 import { platformFeaturesRouter } from '@/routes/platform-features.routes';
 import { listInbox, clearInbox } from '@/controllers/dev-email.controller';
+import { openApiPetsHandler, openApiStatsHandler } from '@/controllers/open-api.controller';
+import { asyncHandler } from '@/middlewares/asyncHandler';
 
 export const buildApp = (): Application => {
   const app = express();
@@ -78,6 +80,10 @@ export const buildApp = (): Application => {
   app.use('/api', extraFeaturesRouter);
   app.use('/api', ugcRouter);
   app.use('/api', platformFeaturesRouter);
+
+  // Open Animal Welfare API Gateway
+  app.get('/api/v1/open/pets', asyncHandler(openApiPetsHandler));
+  app.get('/api/v1/open/stats', asyncHandler(openApiStatsHandler));
 
   // Dev-only inbox preview. Triple-guarded (NODE_ENV, env var, header).
   app.get('/api/_dev/email-preview', listInbox);

@@ -21,3 +21,14 @@ reportsRouter.patch(
   requireRole(Role.MUNICIPAL_WORKER, Role.SHELTER_ADMIN),
   asyncHandler(updateReportStatus),
 );
+
+// Rescue dispatch console routes
+import { getDispatch, updateDispatch } from '@/controllers/dispatch.controller';
+
+reportsRouter.get('/:reportId/dispatch', requireAuth, asyncHandler(getDispatch));
+reportsRouter.put(
+  '/:reportId/dispatch',
+  requireAuth,
+  requireRole(Role.MUNICIPAL_WORKER, Role.VOLUNTEER, Role.SHELTER_ADMIN, Role.PLATFORM_ADMIN),
+  asyncHandler(updateDispatch),
+);

@@ -87,29 +87,38 @@ export interface AppleProfile {
 }
 
 export const processAppleToken = async (idToken: string, userPayload?: { name?: { firstName?: string; lastName?: string }; email?: string }): Promise<AppleProfile> => {
-  // Simple payload extraction from JWT for Apple Sign-In
   try {
-    let email = userPayload?.email;
-    let sub = userPayload?.email ? `apple:${userPayload.email}` : 'apple-sub';
-    let isVerified = true;
+    if (!idToken || typeof idToken !== 'string') {
+      throw new HttpError(400, 'INVALID_INPUT');
+    }
 
-    if (idToken.includes('.')) {
-      const parts = idToken.split('.');
-      if (parts.length === 3) {
-        try {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-          if (payload.email) email = payload.email;
-          if (payload.sub) sub = payload.sub;
-          if (payload.email_verified !== undefined) {
-            isVerified = payload.email_verified === 'true' || payload.email_verified === true;
-          }
-        } catch {
-          // Fallback to userPayload
-        }
+    const parts = idToken.split('.');
+    if (parts.length !== 3) {
+      throw new HttpError(400, 'INVALID_INPUT');
+    }
+
+    const payloadRaw = Buffer.from(parts[1], 'base64').toString('utf8');
+    const payload = JSON.parse(payloadRaw);
+
+    // Validate Apple issuer & expiration claims
+    if (env.NODE_ENV === 'production') {
+      if (payload.iss !== 'https://appleid.apple.com') {
+        throw new HttpError(401, 'INVALID_TOKEN');
+      }
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        throw new HttpError(401, 'EXPIRED_TOKEN');
       }
     }
 
-    if (!email) throw new HttpError(400, 'INVALID_INPUT');
+    const email = payload.email || userPayload?.email;
+    const sub = payload.sub;
+
+    if (!email || !sub) {
+      throw new HttpError(400, 'INVALID_INPUT');
+    }
+
+    const isVerified =
+      payload.email_verified === 'true' || payload.email_verified === true;
 
     let fullName: string | undefined;
     if (userPayload?.name?.firstName || userPayload?.name?.lastName) {

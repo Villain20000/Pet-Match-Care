@@ -24,6 +24,7 @@ enum Role {
   MUNICIPAL_WORKER
   SHELTER_ADMIN
   PLATFORM_ADMIN
+  VET
 }
 
 enum AuthProvider {
@@ -103,6 +104,16 @@ enum PoisonSeverity {
   CRITICAL
 }
 
+enum RescueDispatchStatus {
+  UNASSIGNED
+  DISPATCHED
+  EN_ROUTE
+  ON_SCENE
+  RESOLVED
+  TRANSPORTED_TO_VET
+  CANCELLED
+}
+
 // -------------------------------------------------------------------------
 // Identity
 // -------------------------------------------------------------------------
@@ -158,6 +169,8 @@ model User {
   virtualAdoptions       VirtualAdoption[]
   eventsCreated          PetEvent[]
   sightings              LostPetSighting[]
+  rescueDispatches       RescueDispatch[]     @relation("DispatchedRescuer")
+  organizationMemberships OrganizationMember[]
 
   @@index([homeLatitude, homeLongitude])
   @@index([pushToken])
@@ -241,6 +254,8 @@ model StrayReport {
   status               ReportStatus    @default(OPEN)
   assignedMunicipality String
   assignedAt           DateTime?
+  slaTargetAt          DateTime?
+  slaStatus            String?         // ON_TIME, SLA_WARNING, SLA_BREACHED
   expiresAt            DateTime?
   resolvedAt           DateTime?
   createdAt            DateTime        @default(now())
@@ -248,6 +263,7 @@ model StrayReport {
 
   reporter            User                  @relation(fields: [reporterId], references: [id])
   updates             StrayReportUpdate[]
+  dispatch            RescueDispatch?
 
   @@index([status])
   @@index([assignedMunicipality])
@@ -319,6 +335,7 @@ model PetForAdoption {
   microchipNumber String?
   isVaccinated    Boolean         @default(false)
   isSterilized    Boolean         @default(false)
+  isQuarantined   Boolean         @default(false)
   healthNotes     String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -560,15 +577,18 @@ model FosterProfile {
 // -------------------------------------------------------------------------
 
 model PetMedicalRecord {
-  id          String   @id @default(uuid()) @db.Uuid
-  petId       String   @db.Uuid
-  recordType  String   // e.g. VACCINE, DEWORMING, SURGERY, EXAMINATION, TREATMENT
-  title       String
-  description String?
-  performedAt DateTime
-  vetName     String?
-  nextDueDate DateTime?
-  createdAt   DateTime @default(now())
+  id               String   @id @default(uuid()) @db.Uuid
+  petId            String   @db.Uuid
+  recordType       String   // e.g. VACCINE, DEWORMING, SURGERY, EXAMINATION, TREATMENT, PRESCRIPTION
+  title            String
+  description      String?
+  performedAt      DateTime
+  vetName          String?
+  vetLicenseNumber String?
+  isPrescription   Boolean  @default(false)
+  digitalSignature String?  // Cryptographic HMAC/SHA256 signature hash of record content
+  nextDueDate      DateTime?
+  createdAt        DateTime @default(now())
 
   pet PetForAdoption @relation(fields: [petId], references: [id], onDelete: Cascade)
 
@@ -832,4 +852,106 @@ model KarmaReward {
   karmaCost   Int
   discountCode String
   isActive    Boolean  @default(true)
+}
+
+// -------------------------------------------------------------------------
+// Multi-Organization Permissions & Memberships
+// -------------------------------------------------------------------------
+
+enum OrgType {
+  SHELTER
+  MUNICIPALITY
+  NGO
+  VET_CLINIC
+}
+
+enum OrgRole {
+  OWNER
+  MANAGER
+  MEMBER
+  VOLUNTEER
+}
+
+model Organization {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  type        OrgType  @default(NGO)
+  city        String?
+  vatNumber   String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     OrganizationMember[]
+
+  @@index([type, city])
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       @db.Uuid
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId], name: "organizationId_userId")
+  @@index([userId])
+}
+
+// -------------------------------------------------------------------------
+// Open Animal Welfare API Keys & Gateway
+// -------------------------------------------------------------------------
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  keyHash     String    @unique
+  name        String
+  ownerEmail  String
+  rateLimit   Int       @default(1000) // requests per day
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([ownerEmail])
+}
+
+// -------------------------------------------------------------------------
+// Rescue Dispatch Console & Field Volunteer Operations
+// -------------------------------------------------------------------------
+
+model RescueDispatch {
+  id           String               @id @default(uuid()) @db.Uuid
+  reportId     String               @unique @db.Uuid
+  rescuerId    String?              @db.Uuid
+  status       RescueDispatchStatus @default(UNASSIGNED)
+  notes        String?
+  dispatchedAt DateTime?
+  arrivedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  report  StrayReport         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  rescuer User?               @relation("DispatchedRescuer", fields: [rescuerId], references: [id])
+  logs    RescueDispatchLog[]
+
+  @@index([status])
+  @@index([rescuerId])
+}
+
+model RescueDispatchLog {
+  id         String               @id @default(uuid()) @db.Uuid
+  dispatchId String               @db.Uuid
+  actorId    String               @db.Uuid
+  fromStatus RescueDispatchStatus
+  toStatus   RescueDispatchStatus
+  note       String?
+  createdAt  DateTime             @default(now())
+
+  dispatch RescueDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+
+  @@index([dispatchId, createdAt])
 }
