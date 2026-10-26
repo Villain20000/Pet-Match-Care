@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/config/prisma';
 import { HttpError } from '@/middlewares/error';
 import crypto from 'node:crypto';
-
-const prisma = new PrismaClient();
 
 export const generateDigitalSignature = (recordData: {
   petId: string;
